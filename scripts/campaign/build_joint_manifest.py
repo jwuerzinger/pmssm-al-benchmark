@@ -22,6 +22,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv, glob, os, re, sys
 from pathlib import Path
 
@@ -46,7 +48,7 @@ def _iters(d: str) -> int:
 @click.option("--manifest", required=True, help="Sweep manifest to take cells from.")
 @click.option("--out", required=True, help="Joint manifest to write.")
 @click.option("--model-tag", default="", help="OUTPUT_TAG of a variant sweep, e.g. 'expr'.")
-@click.option("--roots", default="/ptmp/jwuerzin/output",
+@click.option("--roots", default=str(paths.OUTPUT_ROOT),
               help="Comma-separated output roots to search.")
 @click.option("--all-cells", is_flag=True, default=False,
               help="Keep every cell rather than the canonical pick per model.")

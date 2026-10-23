@@ -29,6 +29,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv
 import json
 import re
@@ -2505,13 +2507,13 @@ def plot_best_per_model(traj, tols, uncertainty, true_val, out_dir,
 
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True)
 @click.option("--sweep-id", default=None,
               help="Filter to sweep_ids starting with this prefix, e.g. "
                    "'20260803_18' to catch the main grid + dnn_match + oracle "
                    "launcher invocations of one sweep (default: all rows).")
-@click.option("--output-dir", default="/ptmp/jwuerzin/analysis/all_runs/",
+@click.option("--output-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"),
               show_default=True,
               help="Directory for the generated PNGs. For each metric "
                    "(hit_rate, hits_per_desired) the script writes "
@@ -2551,7 +2553,7 @@ def plot_best_per_model(traj, tols, uncertainty, true_val, out_dir,
                    "`running` and `timeout` rows surface partial trajectories "
                    "alongside completed seeds; the per-iteration band uses "
                    "whichever seeds have data at that iter.")
-@click.option("--baseline-data-dir", default="/ptmp/jwuerzin/data/18387358",
+@click.option("--baseline-data-dir", default=str(paths.DATA_ROOT / "18387358"),
               show_default=True,
               help="ROOT data directory used to compute the random-scan baseline "
                    "(pool prevalence + per-run baseline trajectories). Set to "
@@ -2563,7 +2565,7 @@ def plot_best_per_model(traj, tols, uncertainty, true_val, out_dir,
                    "MCMC, per-model train, per-model val). Recomputes from "
                    "saved per-iteration checkpoints; per-run JSON cache makes "
                    "re-renders cheap.")
-@click.option("--mcmc-data-dir", default="/ptmp/jwuerzin/data/neutralino_v4",
+@click.option("--mcmc-data-dir", default=str(paths.DATA_ROOT / "neutralino_v4"),
               show_default=True,
               help="ROOT directory holding the MCMC eval set used by "
                    "--compute-accuracy.")
@@ -2572,7 +2574,7 @@ def plot_best_per_model(traj, tols, uncertainty, true_val, out_dir,
                    "chains store ~96% repeated rows; the subsample preserves "
                    "multiplicity weighting). 0 disables.")
 @click.option("--mcmc-yield-json",
-              default="/ptmp/jwuerzin/analysis/all_runs/yield_comparison.json",
+              default=str(paths.ANALYSIS_ROOT / "all_runs" / "yield_comparison.json"),
               show_default=True,
               help="yield_comparison.json from scripts/analysis/compute_yield_comparison.py. "
                    "When present, the MCMC distinct-in-band yield is drawn as a "

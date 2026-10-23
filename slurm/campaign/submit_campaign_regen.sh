@@ -44,9 +44,9 @@ set -uo pipefail
 
 REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
-mkdir -p logs analysis/accuracy
+mkdir -p logs
 
-[[ -f "${REPO_ROOT}/slurm/cluster.conf" ]] && source "${REPO_ROOT}/slurm/cluster.conf"
+source "${REPO_ROOT}/slurm/cluster_env.sh"
 export PYTHONUNBUFFERED=1
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
 export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
@@ -58,14 +58,14 @@ EVERY="${REGEN_EVERY:-3days}"
 COPY_TO_PAPER="${COPY_TO_PAPER:-1}"
 SKIP_SLOW="${SKIP_SLOW:-0}"
 
-PAPER=/viper/u2/jwuerzin/ALPaper
-ARCHIVE=/viper/u2/jwuerzin/pmssm-archive/plots
+PAPER=${PAPER_DIR}
+ARCHIVE=${CLUSTER_ARCHIVE_DIR}/plots
 # One shared parsed-pool cache across every step. Without it each step re-parses
 # ~1500 ROOT files from GPFS before drawing anything, ~30 min per pass.
-PC=/ptmp/jwuerzin/analysis/pool_cache
+PC=${CLUSTER_ANALYSIS_DIR}/pool_cache
 # The relic-density posterior, for the emcee-support coverage variant.
-MCMC_POOL=/ptmp/jwuerzin/data/neutralino_v4
-J=/ptmp/jwuerzin/analysis/joint
+MCMC_POOL=${CLUSTER_DATA_DIR}/neutralino_v4
+J=${CLUSTER_ANALYSIS_DIR}/joint
 STAMP=$(date +%Y%m%d)
 
 if [[ -n "${ROCR_VISIBLE_DEVICES:-}${HIP_VISIBLE_DEVICES:-}${CUDA_VISIBLE_DEVICES:-}" ]]; then
@@ -101,15 +101,15 @@ fi
 
 # ---- 1. manifests ------------------------------------------------------------
 step "1/6 refresh the manifests"
-for M in /ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv \
-         /ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv; do
+for M in ${CLUSTER_ANALYSIS_DIR}/all_runs/sweep_manifest.csv \
+         ${CLUSTER_ANALYSIS_DIR}/expr_runs/sweep_manifest.csv; do
     "${PY}" scripts/campaign/update_sweep_manifest.py --manifest "${M}" --all 2>&1 | tail -3
 done
 "${PY}" scripts/campaign/build_joint_manifest.py \
-    --manifest /ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv \
+    --manifest ${CLUSTER_ANALYSIS_DIR}/all_runs/sweep_manifest.csv \
     --out "${J}/manifest_dmrd.csv" 2>&1 | tail -3
 "${PY}" scripts/campaign/build_joint_manifest.py \
-    --manifest /ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv \
+    --manifest ${CLUSTER_ANALYSIS_DIR}/expr_runs/sweep_manifest.csv \
     --model-tag expr --out "${J}/manifest_expr.csv" 2>&1 | tail -3
 
 # ---- 1b. benchmark-only manifests --------------------------------------------
@@ -128,13 +128,12 @@ done
 # curves to every DMRD panel and to none of the ExpR ones, which is unreadable
 # as a comparison and unsupported by the captions.
 step "1b/6 split the manifests: benchmark rows only for the paper's figures"
-"${PY}" - <<'PYSPLIT'
-import csv
+"${PY}" - "${CLUSTER_ANALYSIS_DIR}" <<'PYSPLIT'
+import csv, sys
 from pathlib import Path
-for src, dst in (("/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
-                  "/ptmp/jwuerzin/analysis/all_runs/sweep_manifest_benchmark.csv"),
-                 ("/ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv",
-                  "/ptmp/jwuerzin/analysis/expr_runs/sweep_manifest_benchmark.csv")):
+A = Path(sys.argv[1])
+for src, dst in ((A / "all_runs" / "sweep_manifest.csv", A / "all_runs" / "sweep_manifest_benchmark.csv"),
+                 (A / "expr_runs" / "sweep_manifest.csv", A / "expr_runs" / "sweep_manifest_benchmark.csv")):
     if not Path(src).exists():
         continue
     rows = list(csv.DictReader(open(src)))
@@ -278,12 +277,12 @@ regen_target () {
     fi
 }
 
-regen_target DMRD /ptmp/jwuerzin/analysis/all_runs/sweep_manifest_benchmark.csv \
-    /ptmp/jwuerzin/analysis/all_runs /ptmp/jwuerzin/data/18387358 ""
+regen_target DMRD ${CLUSTER_ANALYSIS_DIR}/all_runs/sweep_manifest_benchmark.csv \
+    ${CLUSTER_ANALYSIS_DIR}/all_runs ${CLUSTER_DATA_DIR}/18387358 ""
 # ExpR has no posterior, so its MCMC yield reference and neutralino veto are off:
 # the population deliberately keeps non-neutralino LSPs.
-regen_target ExpR /ptmp/jwuerzin/analysis/expr_runs/sweep_manifest_benchmark.csv \
-    /ptmp/jwuerzin/analysis/expr_runs /ptmp/jwuerzin/data/260804 expr \
+regen_target ExpR ${CLUSTER_ANALYSIS_DIR}/expr_runs/sweep_manifest_benchmark.csv \
+    ${CLUSTER_ANALYSIS_DIR}/expr_runs ${CLUSTER_DATA_DIR}/260804 expr \
     --target ExpR --no-baseline-require-neutralino-lsp \
     --mcmc-yield-json "" --mcmc-data-dir ""
 
@@ -291,16 +290,16 @@ regen_target ExpR /ptmp/jwuerzin/analysis/expr_runs/sweep_manifest_benchmark.csv
 step "4/6 arm comparison figures (seed means and bands)"
 ARM_ID_ARGS=()
 [[ -n "${CAMPAIGN_ID}" ]] && ARM_ID_ARGS=(--arm-sweep-id "${CAMPAIGN_ID}")
-for spec in "ExpR:/ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv:${J}/manifest_expr.csv:1.0:/ptmp/jwuerzin/data/260804:expr" \
-            "DMRD:/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv:${J}/manifest_dmrd.csv:0.12:/ptmp/jwuerzin/data/18387358:dmrd"; do
+for spec in "ExpR:${CLUSTER_ANALYSIS_DIR}/expr_runs/sweep_manifest.csv:${J}/manifest_expr.csv:1.0:${CLUSTER_DATA_DIR}/260804:expr" \
+            "DMRD:${CLUSTER_ANALYSIS_DIR}/all_runs/sweep_manifest.csv:${J}/manifest_dmrd.csv:0.12:${CLUSTER_DATA_DIR}/18387358:dmrd"; do
     IFS=: read -r T SWEEP JOINT TV POOL SLUG <<< "${spec}"
     OUT="${J}/arms_${SLUG}"
     mkdir -p "${OUT}"
     # The probe glob stays in for ExpR: those single-seed runs are what the
     # figures currently in the paper were made from, so keeping them means the
     # curves extend rather than jump when the campaign's seeds arrive.
-    GLOB='/ptmp/jwuerzin/output/headtest_*_20260821_*'
-    [[ "${T}" == "DMRD" ]] && GLOB='/ptmp/jwuerzin/output/__none__*'
+    GLOB="${CLUSTER_OUTPUT_DIR}/headtest_*_20260821_*"
+    [[ "${T}" == "DMRD" ]] && GLOB="${CLUSTER_OUTPUT_DIR}/__none__*"
     "${PY}" scripts/figures/plot_prelim_paper_style.py \
         --headtest-glob "${GLOB}" --exclude-runs '_111422' \
         --manifest "${JOINT}" --arm-manifest "${SWEEP}" "${ARM_ID_ARGS[@]}" \
@@ -326,7 +325,7 @@ done
 # ---- 5. into the paper -------------------------------------------------------
 step "5/6 copy the renders into the paper"
 if [[ "${COPY_TO_PAPER}" == "1" ]]; then
-    "${PY}" - "${PAPER}" "${J}" <<'PYCOPY'
+    "${PY}" - "${PAPER}" "${J}" "${CLUSTER_ANALYSIS_DIR}" <<'PYCOPY'
 """Copy renders into the paper, refusing to invent or drop figures.
 
 Only basenames the paper ALREADY carries are overwritten. A render with a new
@@ -337,9 +336,9 @@ paper's name for them differs from the render's.
 """
 import shutil, sys
 from pathlib import Path
-paper, joint = Path(sys.argv[1]), Path(sys.argv[2])
-SRC = {"figures": Path("/ptmp/jwuerzin/analysis/all_runs"),
-       "figures_expr": Path("/ptmp/jwuerzin/analysis/expr_runs")}
+paper, joint, analysis = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+SRC = {"figures": analysis / "all_runs",
+       "figures_expr": analysis / "expr_runs"}
 FINAL = {"figures": joint / "arms_dmrd", "figures_expr": joint / "arms_expr"}
 # render name -> paper name, for the main-text composites
 RENAME = {

@@ -22,14 +22,15 @@
 #SBATCH --error=logs/%x_%j.err
 set -uo pipefail
 REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+source "${REPO_ROOT}/slurm/cluster_env.sh"
 cd "${REPO_ROOT}"
 export PYTHONUNBUFFERED=1
 export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 export OPENBLAS_NUM_THREADS=1
 export OMP_NUM_THREADS=8
 .pixi/envs/rocm/bin/python scripts/figures/plot_prelim_support.py \
-    --headtest-glob '/ptmp/jwuerzin/output/headtest_*_20260821_*' \
+    --headtest-glob "${CLUSTER_OUTPUT_DIR}/headtest_*_20260821_*" \
     --exclude-runs '_111422' \
     --n-bins 12 --min-cell 20 --expect-cells 1067 \
-    --output-dir /ptmp/jwuerzin/analysis/joint/prelim_20260821
+    --output-dir ${CLUSTER_ANALYSIS_DIR}/joint/prelim_20260821
 echo "[exit] $?"

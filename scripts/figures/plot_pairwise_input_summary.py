@@ -29,6 +29,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import sys
 from pathlib import Path
 
@@ -299,9 +301,9 @@ def _plot_one_cell(
 
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True)
-@click.option("--mcmc-data-dir", default="/ptmp/jwuerzin/data/neutralino_v4",
+@click.option("--mcmc-data-dir", default=str(paths.DATA_ROOT / "neutralino_v4"),
               show_default=True,
               help="MCMC ROOT dir for the reference contour overlay. Set "
                    "--no-overlay-mcmc to skip and run without loading MCMC.")
@@ -310,7 +312,7 @@ def _plot_one_cell(
                    "(preserves chain multiplicity weighting). 0 disables.")
 @click.option("--sweep-id", default=None,
               help="Filter to one sweep_id (default: all).")
-@click.option("--output-dir", default="/ptmp/jwuerzin/analysis/all_runs/",
+@click.option("--output-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"),
               show_default=True)
 @click.option("--min-seeds", default=2, type=int, show_default=True,
               help="Drop cells with fewer reporting seeds than this.")

@@ -40,6 +40,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import glob
 import json
 import re
@@ -93,7 +95,7 @@ def _per_iteration(state: dict, true_value: float, tau: float):
 
 
 @click.command()
-@click.option("--glob", "pattern", default="/ptmp/jwuerzin/output/headtest_*",
+@click.option("--glob", "pattern", default=str(paths.OUTPUT_ROOT / "headtest_*"),
               help="Glob of run directories.")
 @click.option("--target", default="ExpR", type=click.Choice(sorted(TRUE_VALUE)))
 @click.option("--tau", default=0.1, show_default=True, help="Band half-width.")

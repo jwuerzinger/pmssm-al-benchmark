@@ -28,6 +28,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv
 from pathlib import Path
 
@@ -142,7 +144,7 @@ def _from_manifest(src, out, sweep_id, seeds, min_iterations):
 
 
 @click.command()
-@click.option("--output-root", default="/ptmp/jwuerzin/output", show_default=True)
+@click.option("--output-root", default=str(paths.OUTPUT_ROOT), show_default=True)
 @click.option("--pattern", default="",
               help="Glob against directory names, e.g. '*ext160*' or '*_20k_*'. "
                    "Required unless --from-manifest is given.")

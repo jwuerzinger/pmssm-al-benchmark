@@ -36,6 +36,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+source "${REPO_ROOT}/slurm/cluster_env.sh"
 cd "${REPO_ROOT}"
 
 N_ITERS="${N_ITERS:-200}"
@@ -45,11 +46,11 @@ CAMPAIGN_ID="${CAMPAIGN_ID:-c200_$(date +%Y%m%d_%H%M%S)}"
 ARMS="${ARMS:-bald,cls_entropy,tol_only_random}"
 TARGETS="${TARGETS:-ExpR,DMRD}"
 
-EXPR_POOL=/ptmp/jwuerzin/data/260804
-DMRD_POOL=/ptmp/jwuerzin/data/18387358
-EXPR_MANIFEST=/ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv
-DMRD_MANIFEST=/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv
-CELLS_CSV="${CELLS_CSV:-/ptmp/jwuerzin/analysis/campaign/${CAMPAIGN_ID}_cells.csv}"
+EXPR_POOL=${CLUSTER_DATA_DIR}/260804
+DMRD_POOL=${CLUSTER_DATA_DIR}/18387358
+EXPR_MANIFEST=${CLUSTER_ANALYSIS_DIR}/expr_runs/sweep_manifest.csv
+DMRD_MANIFEST=${CLUSTER_ANALYSIS_DIR}/all_runs/sweep_manifest.csv
+CELLS_CSV="${CELLS_CSV:-${CLUSTER_ANALYSIS_DIR}/campaign/${CAMPAIGN_ID}_cells.csv}"
 mkdir -p "$(dirname "${CELLS_CSV}")" logs
 
 # AL_DATA_DIR must not be exported. submit_strategy_sweep.sh submits with

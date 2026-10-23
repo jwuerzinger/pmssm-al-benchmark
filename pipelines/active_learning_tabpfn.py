@@ -15,6 +15,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 from pathlib import Path
 from datetime import datetime
 import logging
@@ -348,7 +350,7 @@ def load_config_with_sweep(config_file, sweep_index=None):
                    "weighting). 0 disables.")
 @click.option('--static-eval-size', default=100_000, type=int,
               help="Number of models to reserve from the random pool as a static evaluation set (default: 100000).")
-@click.option('--data-dir', default='data/18387358', type=str,
+@click.option('--data-dir', default=str(paths.POOLS["DMRD"]), type=str,
               help="Directory containing training ROOT files (default: data/18387358).")
 @click.option('--resume-from', default=None, type=str,
               help="Path to previous output dir to resume from (loads state.pt).")

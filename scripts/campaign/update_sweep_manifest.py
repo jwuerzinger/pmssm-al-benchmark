@@ -29,6 +29,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import subprocess
 from pathlib import Path
 
@@ -108,7 +110,7 @@ def _resolve_status(row) -> str:
 
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True, help="Sweep manifest CSV to refresh in place.")
 @click.option("--sweep-id", default=None,
               help="Only refresh rows with this sweep_id (plus any row whose "

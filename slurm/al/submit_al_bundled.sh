@@ -13,7 +13,7 @@
 #
 #   export AL_MODEL=transformer AL_STRATEGY=top_k AL_WARM=warm \
 #          AL_SEEDS=1,2,3,4,5 \
-#          AL_OUTPUT_BASE=/ptmp/jwuerzin/output/active_learning_transformer_top_k_warm \
+#          AL_OUTPUT_BASE=${CLUSTER_OUTPUT_DIR}/active_learning_transformer_top_k_warm \
 #          AL_SWEEP_ID=20260422_190000
 #   sbatch --partition=${CLUSTER_PARTITION} --nodes=5 --gres=gpu:2 --exclusive \
 #          --export=ALL slurm/al/submit_al_bundled.sh
@@ -44,6 +44,7 @@
 set -euo pipefail
 
 REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+source "${REPO_ROOT}/slurm/cluster_env.sh"
 cd "${REPO_ROOT}"
 
 # ---- Validate required env ---------------------------------------------------
@@ -237,7 +238,7 @@ echo "=========================================="
 # concurrently finishing bundles never race on each other's tarballs.
 bash "${REPO_ROOT}/scripts/campaign/archive_runs.sh" \
     "$(dirname "${AL_OUTPUT_BASE}")" \
-    /viper/u2/jwuerzin/pmssm-archive/runs \
+    ${CLUSTER_ARCHIVE_DIR}/runs \
     "$(basename "${AL_OUTPUT_BASE}")_seed*" \
     || echo "[bundle] WARN: run archiving failed"
 

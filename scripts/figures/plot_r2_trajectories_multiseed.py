@@ -31,6 +31,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import sys
 from pathlib import Path
 
@@ -333,11 +335,11 @@ def plot_best_per_model(traj, uncertainty, out_dir,
 # ──────────────────────────────────────────────────────────────────────────────
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True)
 @click.option("--sweep-id", default=None,
               help="Filter to one sweep_id (default: all).")
-@click.option("--output-dir", default="/ptmp/jwuerzin/analysis/all_runs/",
+@click.option("--output-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"),
               show_default=True,
               help="Directory for the generated PNGs. For each metric, files "
                    "<metric>_strategy_<strategy>.png and "

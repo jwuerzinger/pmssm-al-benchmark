@@ -35,6 +35,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv
 import glob
 import json
@@ -153,15 +155,15 @@ def al_yields(manifest: str, tol: float, require_neutralino_lsp: bool,
 
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True)
-@click.option("--mcmc-data-dir", default="/ptmp/jwuerzin/data/neutralino_v4",
+@click.option("--mcmc-data-dir", default=str(paths.DATA_ROOT / "neutralino_v4"),
               show_default=True)
-@click.option("--baseline-data-dir", default="/ptmp/jwuerzin/data/18387358",
+@click.option("--baseline-data-dir", default=str(paths.DATA_ROOT / "18387358"),
               show_default=True,
               help="Random-scan pool; band prevalence × p_valid gives the "
                    "per-attempt baseline yield.")
-@click.option("--output-dir", default="/ptmp/jwuerzin/analysis/all_runs/",
+@click.option("--output-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"),
               show_default=True,
               help="Where yield_comparison.json is written (also used as the "
                    "Y-pool .npy cache dir).")

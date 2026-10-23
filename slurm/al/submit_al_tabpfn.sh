@@ -2,7 +2,8 @@
 # ==============================================================================
 # Slurm job: TabPFN-based active learning
 #
-# Defaults mirror run_active_learning_tabpfn.sh (full production run).
+# Production defaults of the TabPFN pipeline; every value can be overridden
+# through the AL_* environment variables below.
 #
 # AL and Baseline fit+eval can run in parallel on two GPUs — request 2 GPUs
 # via --gres=gpu:2 to halve the per-iteration wall-clock. With 1 GPU the run
@@ -67,12 +68,7 @@ mv "${REPO_ROOT}/logs/${SLURM_JOB_NAME}_${SLURM_JOB_ID}.err" "${REPO_ROOT}/logs/
 
 
 # ---- Cluster config ----------------------------------------------------------
-if [[ -f "${REPO_ROOT}/slurm/cluster.conf" ]]; then
-    source "${REPO_ROOT}/slurm/cluster.conf"
-else
-    echo "[warn] slurm/cluster.conf not found — using defaults"
-    echo "       cp slurm/cluster.conf.template slurm/cluster.conf"
-fi
+source "${REPO_ROOT}/slurm/cluster_env.sh"
 
 # TabPFN requires a license token to download model weights non-interactively.
 # Set it via: export TABPFN_TOKEN="<key>"  (get key at https://ux.priorlabs.ai/account)
@@ -89,7 +85,7 @@ export PYTHONUNBUFFERED=1
 # SMODELS_CACHEDIR at the repo checkout (no /eos on this cluster), which holds no
 # database, and compute nodes cannot download one. setup.sh honours a pre-set
 # value. Only the r-value target's step list needs this; harmless otherwise.
-export SMODELS_CACHEDIR="${SMODELS_CACHEDIR:-/ptmp/jwuerzin/cache/smodels}"
+export SMODELS_CACHEDIR   # default set in slurm/cluster_env.sh
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
 export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 
@@ -101,11 +97,10 @@ echo " Repo:    ${REPO_ROOT}"
 echo "=========================================="
 
 # ---- Pixi environment --------------------------------------------------------
-PIXI_ENV="${PIXI_ENV:-cuda}"
 PYTHON="${REPO_ROOT}/.pixi/envs/${PIXI_ENV}/bin/python"
 if [[ ! -x "${PYTHON}" ]]; then
     echo "[setup] pixi env '${PIXI_ENV}' not found — running: pixi install -e ${PIXI_ENV}"
-    /u/jwuerzin/.pixi/bin/pixi install -e "${PIXI_ENV}"
+    "${PIXI_BIN}" install -e "${PIXI_ENV}"
 fi
 if [[ ! -x "${PYTHON}" ]]; then
     echo "[error] Python executable not found after pixi install: ${PYTHON}"
@@ -140,7 +135,7 @@ echo "[params] AL_N_SELECT=${AL_N_SELECT:-500}"
 echo "[params] AL_N_CANDIDATES=${AL_N_CANDIDATES:-1000000}"
 echo "[params] AL_N_ENSEMBLE_SAMPLES=${AL_N_ENSEMBLE_SAMPLES:-16}"
 echo "[params] AL_SELECTION_STRATEGY=${AL_SELECTION_STRATEGY:-top_k}"
-echo "[params] AL_OUTPUT_DIR=${AL_OUTPUT_DIR:-/ptmp/jwuerzin/output/active_learning_tabpfn_output_slurm_${TIMESTAMP}}"
+echo "[params] AL_OUTPUT_DIR=${AL_OUTPUT_DIR:-${CLUSTER_OUTPUT_DIR}/active_learning_tabpfn_output_slurm_${TIMESTAMP}}"
 echo "[params] AL_GENERATE_DATA=${AL_GENERATE_DATA:---generate-data}"
 
 # ---- Run active learning -----------------------------------------------------
@@ -159,7 +154,7 @@ source "${REPO_ROOT}/slurm/al/resume_args.sh"
     --data-dir "${AL_DATA_DIR:-${CLUSTER_DATA_DIR}/18387358}" \
     --static-eval-size "${AL_STATIC_EVAL_SIZE:-100000}" \
     --gen-workers "${AL_GEN_WORKERS:-20}" \
-    --output-dir "${AL_OUTPUT_DIR:-/ptmp/jwuerzin/output/active_learning_tabpfn_output_slurm_${TIMESTAMP}}" \
+    --output-dir "${AL_OUTPUT_DIR:-${CLUSTER_OUTPUT_DIR}/active_learning_tabpfn_output_slurm_${TIMESTAMP}}" \
     --gpu-ids "${GPU_IDS}" \
     ${AL_GENERATE_DATA:---generate-data} ${RESUME_ARGS} \
     ${AL_EXTRA_ARGS:-}

@@ -16,7 +16,7 @@
 # holding a slot the bundles want.
 #
 # Submit:
-#   CAMPAIGN_CELLS=/ptmp/jwuerzin/analysis/campaign/<id>_cells.csv \
+#   CAMPAIGN_CELLS=${CLUSTER_ANALYSIS_DIR}/campaign/<id>_cells.csv \
 #   CAMPAIGN_HORIZON=2026-09-30 \
 #       sbatch --partition=apu1 --gres=gpu:1 --mem=16G slurm/campaign/submit_campaign_chase.sh
 #
@@ -46,9 +46,7 @@ REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p logs
 
-if [[ -f "${REPO_ROOT}/slurm/cluster.conf" ]]; then
-    source "${REPO_ROOT}/slurm/cluster.conf"
-fi
+source "${REPO_ROOT}/slurm/cluster_env.sh"
 export PYTHONUNBUFFERED=1
 export OPENBLAS_NUM_THREADS=1
 export OMP_NUM_THREADS=1
@@ -144,7 +142,7 @@ echo "[chase] campaign_chase.py exited ${RC}"
 if [[ "${CHASE_PRUNE:-0}" == "1" ]]; then
     echo; echo "[chase] packing completed-iteration workspaces into debris.tar"
     "${PYTHON}" scripts/campaign/prune_run_debris.py \
-        --runs "${CHASE_PRUNE_GLOB:-/ptmp/jwuerzin/output/active_learning_*}" \
+        --runs "${CHASE_PRUNE_GLOB:-${CLUSTER_OUTPUT_DIR}/active_learning_*}" \
         --keep-last 3 --mode tar --max-dirs "${CHASE_PRUNE_MAX_DIRS:-4000}" \
         --deadline-min "${CHASE_PRUNE_DEADLINE_MIN:-60}" --apply 2>&1 | tail -6
 else

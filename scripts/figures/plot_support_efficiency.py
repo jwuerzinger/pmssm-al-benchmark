@@ -88,6 +88,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv
 import json
 import sys
@@ -108,7 +110,7 @@ from pmssm.data import target_validity_mask as target_validity_mask_  # noqa: E4
 SOURCE_LABEL = {"pool": "static random scan", "mcmc": "emcee posterior",
                 "atlas": "ATLAS pMSSM EWK scan"}
 ATLAS_GLOB = "/viper/ptmp1/jwuerzin/pMSSM_ATLAS_EWK/scans/*/*/*.root"
-EMCEE_H5_NPZ = "/ptmp/jwuerzin/analysis/all_runs/emcee_chain_ordered.npz"
+EMCEE_H5_NPZ = str(paths.ANALYSIS_ROOT / "all_runs" / "emcee_chain_ordered.npz")
 SOURCE_STYLE = {"pool": (":", "black"), "mcmc": ("-.", "0.45"),
                 "atlas": ((0, (5, 1, 1, 1)), "tab:brown")}
 SOURCE_CURVE = {"pool": "random scan", "mcmc": "MCMC",
@@ -391,14 +393,14 @@ def _speedup(f_al, c_al, f_ref, c_ref):
 # ── driver ───────────────────────────────────────────────────────────────────
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True)
-@click.option("--output-dir", default="/ptmp/jwuerzin/analysis/all_runs", show_default=True)
-@click.option("--cache-dir", default="/ptmp/jwuerzin/analysis/all_runs", show_default=True,
+@click.option("--output-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"), show_default=True)
+@click.option("--cache-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"), show_default=True,
               help="Where the (slow) support build is cached. Share it across "
                    "run sets of the same target.")
-@click.option("--baseline-data-dir", default="/ptmp/jwuerzin/data/18387358", show_default=True)
-@click.option("--mcmc-data-dir", default="/ptmp/jwuerzin/data/neutralino_v4", show_default=True)
+@click.option("--baseline-data-dir", default=str(paths.DATA_ROOT / "18387358"), show_default=True)
+@click.option("--mcmc-data-dir", default=str(paths.DATA_ROOT / "neutralino_v4"), show_default=True)
 @click.option("--target", default="DMRD", show_default=True,
               help="TARGET_CONFIG key: sets the branch and the band centre.")
 @click.option("--model-tag", default="", show_default=True,

@@ -2,7 +2,8 @@
 # ==============================================================================
 # Slurm job: GP active learning — DeepGP
 #
-# Equivalent to run_active_learning_gp.sh with --model-type deep_gp.
+# Production defaults of the deep-GP pipeline; every value can be overridden
+# through the AL_* environment variables below.
 #
 # Setup: cp slurm/cluster.conf.template slurm/cluster.conf  (edit for your cluster)
 #
@@ -32,19 +33,14 @@ mv "${REPO_ROOT}/logs/${SLURM_JOB_NAME}_${SLURM_JOB_ID}.err" "${REPO_ROOT}/logs/
 
 
 # ---- Cluster config ----------------------------------------------------------
-if [[ -f "${REPO_ROOT}/slurm/cluster.conf" ]]; then
-    source "${REPO_ROOT}/slurm/cluster.conf"
-else
-    echo "[warn] slurm/cluster.conf not found — using defaults"
-    echo "       cp slurm/cluster.conf.template slurm/cluster.conf"
-fi
+source "${REPO_ROOT}/slurm/cluster_env.sh"
 
 export PYTHONUNBUFFERED=1
 # SModelS results database. Run3ModelGen's build/setup.sh otherwise points
 # SMODELS_CACHEDIR at the repo checkout (no /eos on this cluster), which holds no
 # database, and compute nodes cannot download one. setup.sh honours a pre-set
 # value. Only the r-value target's step list needs this; harmless otherwise.
-export SMODELS_CACHEDIR="${SMODELS_CACHEDIR:-/ptmp/jwuerzin/cache/smodels}"
+export SMODELS_CACHEDIR   # default set in slurm/cluster_env.sh
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
 export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 
@@ -55,11 +51,10 @@ echo " Started: $(date)"
 echo " Repo:    ${REPO_ROOT}"
 echo "=========================================="
 
-PIXI_ENV="${PIXI_ENV:-cuda}"
 PYTHON="${REPO_ROOT}/.pixi/envs/${PIXI_ENV}/bin/python"
 if [[ ! -x "${PYTHON}" ]]; then
     echo "[setup] pixi env '${PIXI_ENV}' not found — running: pixi install -e ${PIXI_ENV}"
-    /u/jwuerzin/.pixi/bin/pixi install -e "${PIXI_ENV}"
+    "${PIXI_BIN}" install -e "${PIXI_ENV}"
 fi
 if [[ ! -x "${PYTHON}" ]]; then
     echo "[error] Python executable not found after pixi install: ${PYTHON}"
@@ -111,7 +106,7 @@ source "${REPO_ROOT}/slurm/al/resume_args.sh"
     --num-inducing-max 256 \
     --use-ard \
     --warm-starting \
-    --output-dir "${AL_OUTPUT_DIR:-/ptmp/jwuerzin/output/active_learning_deep_gp_output_${TIMESTAMP}}" ${RESUME_ARGS} \
+    --output-dir "${AL_OUTPUT_DIR:-${CLUSTER_OUTPUT_DIR}/active_learning_deep_gp_output_${TIMESTAMP}}" ${RESUME_ARGS} \
     --gpu-ids "${GPU_IDS}" \
     ${AL_EXTRA_ARGS:-}
 

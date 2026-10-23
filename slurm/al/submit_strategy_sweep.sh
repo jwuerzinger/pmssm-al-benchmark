@@ -24,7 +24,7 @@
 #                auto-skips entropy_batch unless TABPFN_ALLOW_ENTROPY=1)
 #   WARM_MODES  (default "warm,cold"; tabpfn always uses "tabpfn" sentinel)
 #   DRY_RUN     (1 = do not sbatch, just preview and append DRY rows)
-#   MANIFEST    (default /ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv)
+#   MANIFEST    (default ${CLUSTER_ANALYSIS_DIR}/all_runs/sweep_manifest.csv)
 #   SUBMIT_SLEEP_SEC (default 0; optional throttle between sbatch calls)
 #   BUNDLE_SEEDS (1 = submit one multi-node bundle per (model, strategy, warm)
 #                 cell that runs all requested seeds in parallel via srun;
@@ -42,23 +42,14 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+source "${REPO_ROOT}/slurm/cluster_env.sh"
 cd "${REPO_ROOT}"
 
-MANIFEST="${MANIFEST:-/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv}"
+MANIFEST="${MANIFEST:-${CLUSTER_ANALYSIS_DIR}/all_runs/sweep_manifest.csv}"
 mkdir -p "$(dirname "${MANIFEST}")"
 if [[ ! -f "${MANIFEST}" ]]; then
     echo "sweep_id,submit_time,model,strategy,warm_start,seed,job_id,expected_run_dir,status,slurm_log" > "${MANIFEST}"
     echo "[manifest] created ${MANIFEST}"
-fi
-
-# ---- Cluster config ----------------------------------------------------------
-if [[ -f "${REPO_ROOT}/slurm/cluster.conf" ]]; then
-    source "${REPO_ROOT}/slurm/cluster.conf"
-else
-    echo "[warn] slurm/cluster.conf not found — using defaults (apu, gpu:2, rocm)"
-    CLUSTER_PARTITION="${CLUSTER_PARTITION:-apu}"
-    CLUSTER_GPU_GRES_2="${CLUSTER_GPU_GRES_2:-gpu:2}"
-    CLUSTER_GPU_GRES_1="${CLUSTER_GPU_GRES_1:-gpu:1}"
 fi
 
 # Overridable so one campaign can span several invocations of this script and
@@ -151,7 +142,7 @@ for model in ${MODELS//,/ }; do
                 # rows sharing job_id (one per seed) so plotting/bookkeeping
                 # stays row-per-seed.
                 submit_time="$(date +%Y%m%d_%H%M%S)"
-                al_output_base="/ptmp/jwuerzin/output/active_learning_${manifest_model}_${strategy}_${warm}"
+                al_output_base="${CLUSTER_OUTPUT_DIR}/active_learning_${manifest_model}_${strategy}_${warm}"
 
                 # Per-model resource footprint. All bundles request gpu:2 per
                 # node — the other models use both GPUs, and TabPFN drives
@@ -216,7 +207,7 @@ for model in ${MODELS//,/ }; do
                 # the path unique per (config, seed). submit_time below captures
                 # the actual per-job sbatch time for the manifest.
                 submit_time="$(date +%Y%m%d_%H%M%S)"
-                expected_dir="/ptmp/jwuerzin/output/active_learning_${manifest_model}_${strategy}_${warm}_seed${seed}_${SWEEP_ID}"
+                expected_dir="${CLUSTER_OUTPUT_DIR}/active_learning_${manifest_model}_${strategy}_${warm}_seed${seed}_${SWEEP_ID}"
 
                 # Assemble the args we inject. AL_EXTRA_ARGS is spliced at the
                 # very end of each per-model submit script, so last-wins Click

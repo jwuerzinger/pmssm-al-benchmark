@@ -44,6 +44,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv
 import glob as globmod
 import re
@@ -110,13 +112,13 @@ def _support_from_cache(pool_dir, target, cache_dir, tol, n_bins, min_cell,
 
 
 @click.command()
-@click.option("--headtest-glob", default="/ptmp/jwuerzin/output/headtest_*",
+@click.option("--headtest-glob", default=str(paths.OUTPUT_ROOT / "headtest_*"),
               show_default=True)
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/joint/manifest_expr.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "joint" / "manifest_expr.csv"),
               show_default=True)
 @click.option("--exclude-runs", default="", show_default=True,
               help="Substrings of run-dir names to drop (superseded runs).")
-@click.option("--pool-dir", default="/ptmp/jwuerzin/data/260804", show_default=True)
+@click.option("--pool-dir", default=str(paths.DATA_ROOT / "260804"), show_default=True)
 @click.option("--target", default="ExpR", show_default=True)
 @click.option("--true-value", default=1.0, show_default=True)
 @click.option("--tolerance", default=0.1, show_default=True)
@@ -135,7 +137,7 @@ def _support_from_cache(pool_dir, target, cache_dir, tol, n_bins, min_cell,
               help="Budgets below the seed set are not an AL result.")
 @click.option("--band-side", default="in", type=click.Choice(["in", "out"]),
               show_default=True)
-@click.option("--pool-cache-dir", default="/ptmp/jwuerzin/analysis/pool_cache",
+@click.option("--pool-cache-dir", default=str(paths.ANALYSIS_ROOT / "pool_cache"),
               show_default=True)
 @click.option("--use-cache/--parse-root", default=True, show_default=True,
               help="Build the support from the parsed-pool .npy cache instead "

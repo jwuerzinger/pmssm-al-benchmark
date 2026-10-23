@@ -27,13 +27,16 @@
 # (default "*"). The bundle jobs pass their own name prefix as PATTERN so
 # concurrently finishing bundles each archive only their own runs:
 #
-#   bash scripts/campaign/archive_runs.sh /ptmp/jwuerzin/output \
-#        /viper/u2/jwuerzin/pmssm-archive/runs "active_learning_dnn_top_k_cold_seed*"
+#   bash scripts/campaign/archive_runs.sh ${CLUSTER_OUTPUT_DIR} \
+#        ${CLUSTER_ARCHIVE_DIR}/runs "active_learning_dnn_top_k_cold_seed*"
 # ==============================================================================
 set -uo pipefail
 
-SRC="${1:-/ptmp/jwuerzin/output}"
-DEST="${2:-/viper/u2/jwuerzin/pmssm-archive/runs}"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+source "${REPO_ROOT}/slurm/cluster_env.sh"
+
+SRC="${1:-${CLUSTER_OUTPUT_DIR}}"
+DEST="${2:-${CLUSTER_ARCHIVE_DIR}/runs}"
 PATTERN="${3:-*}"
 
 mkdir -p "$DEST"

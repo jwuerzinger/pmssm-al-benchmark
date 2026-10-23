@@ -44,6 +44,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv
 import glob
 import os
@@ -56,11 +58,10 @@ from pathlib import Path
 import click
 
 REPO = _REPO_ROOT
-OUTPUT_ROOT = "/ptmp/jwuerzin/output"
-EXPR_POOL = "/ptmp/jwuerzin/data/260804"
-DMRD_POOL = "/ptmp/jwuerzin/data/18387358"
-MANIFESTS = {"ExpR": "/ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv",
-             "DMRD": "/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv"}
+OUTPUT_ROOT = str(paths.OUTPUT_ROOT)
+EXPR_POOL = str(paths.POOLS["ExpR"])
+DMRD_POOL = str(paths.POOLS["DMRD"])
+MANIFESTS = {t: str(m) for t, m in paths.MANIFESTS.items()}
 # Variant families that are not part of this campaign and must never be resumed
 # by it: the oracle runs consume the MCMC posterior as their candidate source
 # and the laplace runs swap the acquisition uncertainty, so extending them would
@@ -267,7 +268,7 @@ def main(cells, resume_to, seeds, per_wake, queue_cap,
             csv_names.add(job_name(r["target"], r["model"], r["strategy"]))
         for r in csv.DictReader(open(cells)):
             dm = dir_model(r["model"], r["target"])
-            base = (f"/ptmp/jwuerzin/output/active_learning_{dm}"
+            base = (f"{OUTPUT_ROOT}/active_learning_{dm}"
                     f"_{r['strategy']}_{r['warm']}")
             got = {s: _iters(f"{base}_seed{s}_{r['campaign_id']}") for s in seed_list}
             if min(got.values()) >= resume_to:

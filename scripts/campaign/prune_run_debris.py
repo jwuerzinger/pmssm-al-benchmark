@@ -68,6 +68,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import glob
 import os
 import shutil
@@ -137,7 +139,7 @@ def _measure(paths):
 
 
 @click.command()
-@click.option("--runs", multiple=True, default=["/ptmp/jwuerzin/output/*"],
+@click.option("--runs", multiple=True, default=[str(paths.OUTPUT_ROOT / "*")],
               show_default=True,
               help="Glob over run directories; repeatable, so a batch can be "
                    "given as explicit directories.")

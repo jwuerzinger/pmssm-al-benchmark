@@ -15,6 +15,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import warnings
 import random
 import re
@@ -439,7 +441,7 @@ def load_config_with_sweep(config_file, sweep_index=None):
 @click.option('--config-file', default=None, type=str,
               help="YAML config file (overrides CLI args). Supports parameter sweeps.")
 @click.option('--sweep-index', default=None, type=int, help="Sweep combination index (requires --config-file).")
-@click.option('--data-dir', default='data/18387358', type=str,
+@click.option('--data-dir', default=str(paths.POOLS["DMRD"]), type=str,
               help="Directory containing training ROOT files (default: data/18387358).")
 @click.option('--resume-from', default=None, type=str,
               help="Path to previous output dir to resume from (loads state.pt).")

@@ -41,6 +41,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv
 import sys
 from pathlib import Path
@@ -153,8 +155,8 @@ def _mean_on_grid(curves, n_points=200):
 @click.option("--manifest", default="", help="Joint manifest for the reference arms.")
 @click.option("--arm-manifest", default="", help="Sweep manifest for the new arms.")
 @click.option("--arm-sweep-id", default="", show_default=True)
-@click.option("--pool-dir", default="/ptmp/jwuerzin/data/18387358", show_default=True)
-@click.option("--pool-cache-dir", default="/ptmp/jwuerzin/analysis/pool_cache",
+@click.option("--pool-dir", default=str(paths.DATA_ROOT / "18387358"), show_default=True)
+@click.option("--pool-cache-dir", default=str(paths.ANALYSIS_ROOT / "pool_cache"),
               show_default=True)
 @click.option("--target", default="DMRD", show_default=True)
 @click.option("--true-value", default=0.12, show_default=True)

@@ -15,6 +15,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import warnings
 warnings.filterwarnings('ignore', message='.*enable_nested_tensor.*')
 
@@ -257,7 +259,7 @@ def load_config_with_sweep(config_file, sweep_index=None):
                    "weighting). 0 disables.")
 @click.option('--static-eval-size', default=100_000, type=int,
               help="Number of models to reserve from the random pool as a static evaluation set (default: 100000).")
-@click.option('--data-dir', default='data/18387358', type=str,
+@click.option('--data-dir', default=str(paths.POOLS["DMRD"]), type=str,
               help="Directory containing training ROOT files (default: data/18387358).")
 @click.option('--use-mcmc-loader/--no-use-mcmc-loader', default=False,
               help="Load initial training data via load_mcmc_data (MCMC-specific filters: straddle-0.12, exclude <0.04). Default: load_pmssm_data via --data-dir.")

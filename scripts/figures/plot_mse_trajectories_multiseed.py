@@ -38,6 +38,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv
 import json
 import sys
@@ -100,9 +102,9 @@ def _to_floats(v) -> list[float]:
 
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True)
-@click.option("--output-dir", default="/ptmp/jwuerzin/analysis/all_runs", show_default=True)
+@click.option("--output-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"), show_default=True)
 @click.option("--sweep-id", default=None,
               help="Only manifest rows whose sweep_id starts with this prefix.")
 @click.option("--include-status", default="completed,running,timeout", show_default=True)

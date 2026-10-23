@@ -50,6 +50,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv
 import json
 import sys
@@ -591,15 +593,15 @@ def _make_plots(results: dict, out_dir: Path, T_default: int) -> None:
 # ──────────────────────────────────────────────────────────────────────────────
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True)
-@click.option("--baseline-data-dir", default="/ptmp/jwuerzin/data/18387358",
+@click.option("--baseline-data-dir", default=str(paths.DATA_ROOT / "18387358"),
               show_default=True)
-@click.option("--mcmc-data-dir", default="/ptmp/jwuerzin/data/neutralino_v4",
+@click.option("--mcmc-data-dir", default=str(paths.DATA_ROOT / "neutralino_v4"),
               show_default=True)
-@click.option("--cache-dir", default="/ptmp/jwuerzin/analysis/all_runs", show_default=True,
+@click.option("--cache-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"), show_default=True,
               help="Directory holding the pool .npy caches (same as the plot scripts).")
-@click.option("--output-dir", default="/ptmp/jwuerzin/analysis/all_runs", show_default=True)
+@click.option("--output-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"), show_default=True)
 @click.option("--models", default=None,
               help="Comma list of picks to evaluate (default: all DEFAULT_AL_PICKS).")
 @click.option("--seeds", default=None, help="Comma list of seeds (default: all).")

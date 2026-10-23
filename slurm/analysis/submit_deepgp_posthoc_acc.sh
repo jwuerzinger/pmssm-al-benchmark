@@ -17,6 +17,7 @@
 #SBATCH --error=logs/%x_%j.err
 set -uo pipefail
 REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+source "${REPO_ROOT}/slurm/cluster_env.sh"
 cd "${REPO_ROOT}"
 export PYTHONUNBUFFERED=1
 export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
@@ -24,7 +25,7 @@ export OPENBLAS_NUM_THREADS=1
 export OMP_NUM_THREADS=8
 
 .pixi/envs/rocm/bin/python scripts/experiments/deepgp_posthoc_accuracy.py \
-    --runs '/ptmp/jwuerzin/output/headtest_deepgp_*_seed1_20260821_11*' \
-    --data-dir /ptmp/jwuerzin/data/260804 --target ExpR \
+    --runs "${CLUSTER_OUTPUT_DIR}/headtest_deepgp_*_seed1_20260821_11*" \
+    --data-dir ${CLUSTER_DATA_DIR}/260804 --target ExpR \
     --device cuda --write
 echo "[exit] $?"

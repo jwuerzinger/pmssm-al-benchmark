@@ -13,7 +13,13 @@ CLUSTER_PARTITION_DEV="apudev"
 CLUSTER_GPU_GRES_2="gpu:2"
 CLUSTER_GPU_GRES_1="gpu:1"
 PIXI_ENV="rocm"
-CLUSTER_DATA_DIR="/ptmp/jwuerzin/data"
+CLUSTER_DATA_DIR="/ptmp/jwuerzin/data"          # pools and the MCMC reference (doc/DATA.md)
+CLUSTER_OUTPUT_DIR="/ptmp/jwuerzin/output"      # one directory per run
+CLUSTER_ANALYSIS_DIR="/ptmp/jwuerzin/analysis"  # manifests, caches, renders
+CLUSTER_ARCHIVE_DIR="/viper/u2/jwuerzin/pmssm-archive"   # non-purged storage for the run tarballs
+SMODELS_CACHEDIR="/ptmp/jwuerzin/cache/smodels" # SModelS database, needed by the ExpR target
+PAPER_DIR="/viper/u2/jwuerzin/ALPaper"          # where submit_campaign_regen.sh copies the figures
+PIXI_BIN="${HOME}/.pixi/bin/pixi"               # used to build the environment on first use
 # TABPFN_TOKEN="<your-api-key>"   # get from https://ux.priorlabs.ai/account
 
 # ---- Raven (NVIDIA A100) ----------------------------------------------------

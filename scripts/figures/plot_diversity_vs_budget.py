@@ -91,6 +91,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import json
 import sys
 from pathlib import Path
@@ -387,11 +389,11 @@ def _figures(plt, phr, data, ref_calls, n_per_model, n_pool_total, output_dir,
 
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True)
-@click.option("--output-dir", default="/ptmp/jwuerzin/analysis/all_runs", show_default=True)
-@click.option("--baseline-data-dir", default="/ptmp/jwuerzin/data/18387358", show_default=True)
-@click.option("--mcmc-data-dir", default="/ptmp/jwuerzin/data/neutralino_v4", show_default=True)
+@click.option("--output-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"), show_default=True)
+@click.option("--baseline-data-dir", default=str(paths.DATA_ROOT / "18387358"), show_default=True)
+@click.option("--mcmc-data-dir", default=str(paths.DATA_ROOT / "neutralino_v4"), show_default=True)
 @click.option("--target", default="DMRD", show_default=True)
 @click.option("--model-tag", default="", show_default=True,
               help="OUTPUT_TAG of a variant sweep (e.g. 'expr').")

@@ -37,6 +37,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv
 import json
 import sys
@@ -185,12 +187,12 @@ def coverage_of(cells: np.ndarray, tmap: np.ndarray, n_target: int) -> float:
 
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True)
-@click.option("--baseline-data-dir", default="/ptmp/jwuerzin/data/18387358", show_default=True)
-@click.option("--mcmc-data-dir", default="/ptmp/jwuerzin/data/neutralino_v4", show_default=True)
-@click.option("--cache-dir", default="/ptmp/jwuerzin/analysis/all_runs", show_default=True)
-@click.option("--output-dir", default="/ptmp/jwuerzin/analysis/all_runs", show_default=True)
+@click.option("--baseline-data-dir", default=str(paths.DATA_ROOT / "18387358"), show_default=True)
+@click.option("--mcmc-data-dir", default=str(paths.DATA_ROOT / "neutralino_v4"), show_default=True)
+@click.option("--cache-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"), show_default=True)
+@click.option("--output-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"), show_default=True)
 @click.option("--sweep-id", default="", show_default=True,
               help="Optional sweep_id prefix filter. Empty by default: the "
                    "manifest marks superseded generations, which the "
@@ -405,7 +407,7 @@ def main(manifest, baseline_data_dir, mcmc_data_dir, cache_dir, output_dir,
     # deflation is needed. Representing a budget of N proposals by N/factor
     # uniformly sampled rows understated it badly: coverage is a saturating
     # set-union quantity, so 1/70th of the points reaches far fewer cells.
-    _H5 = Path("/ptmp/jwuerzin/analysis/all_runs/emcee_chain_ordered.npz")
+    _H5 = Path(str(paths.ANALYSIS_ROOT / "all_runs" / "emcee_chain_ordered.npz"))
     if _has_ref and _H5.exists():
         _z = np.load(_H5)
         _Xh, _Yh = _z["X"], _z["Y"].astype(np.float64)

@@ -29,6 +29,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv
 import re
 import sys
@@ -181,9 +183,9 @@ def _selection_seconds(main_log: Path) -> dict[int, float]:
 
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True)
-@click.option("--output-dir", default="/ptmp/jwuerzin/analysis/all_runs", show_default=True)
+@click.option("--output-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"), show_default=True)
 @click.option("--sweep-id", default=None,
               help="Only manifest rows whose sweep_id starts with this prefix.")
 @click.option("--include-status", default="completed,running,timeout", show_default=True)
@@ -209,9 +211,9 @@ def _selection_seconds(main_log: Path) -> dict[int, float]:
                    "dropping it hid the compute it had already spent.")
 @click.option("--coverage/--no-coverage", default=True, show_default=True,
               help="Also plot covered in-band support versus cumulative compute.")
-@click.option("--mcmc-data-dir", default="/ptmp/jwuerzin/data/neutralino_v4",
+@click.option("--mcmc-data-dir", default=str(paths.DATA_ROOT / "neutralino_v4"),
               show_default=True, help="Emcee reference defining one support.")
-@click.option("--baseline-data-dir", default="/ptmp/jwuerzin/data/18387358",
+@click.option("--baseline-data-dir", default=str(paths.DATA_ROOT / "18387358"),
               show_default=True,
               help="Random-scan pool defining the second support. Same axes, "
                    "bins, tolerance and min_cell as the emcee one; only the "

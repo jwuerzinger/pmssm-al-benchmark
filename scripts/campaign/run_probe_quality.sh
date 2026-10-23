@@ -22,12 +22,15 @@
 # GPU to re-evaluate each checkpoint, so they have to wait for a SLURM slot.
 # =============================================================================
 set -uo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+source "${REPO_ROOT}/slurm/cluster_env.sh"
 cd "$(dirname "$0")/.."
 PY="$PWD/.pixi/envs/${PIXI_ENV:-rocm}/bin/python"
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
 
-EXT_DIR=/ptmp/jwuerzin/analysis/probe_extended
-K20_DIR=/ptmp/jwuerzin/analysis/probe_20k
+EXT_DIR=${CLUSTER_ANALYSIS_DIR}/probe_extended
+K20_DIR=${CLUSTER_ANALYSIS_DIR}/probe_20k
 
 stage () {  # stage <label> <cmd...>
     local label="$1"; shift
@@ -64,7 +67,7 @@ stage "composition:20k" "${PY}" scripts/analysis/composition_fractions.py \
 # after here; keeping it identical to the main body's invocation means the
 # MCMC row in each probe table is the same reference, so the AL rows are being
 # compared against the same yardstick.
-REF=/ptmp/jwuerzin/data/neutralino_v4
+REF=${CLUSTER_DATA_DIR}/neutralino_v4
 
 stage "diagnostics:extended" "${PY}" scripts/analysis/mcmc_diagnostics.py \
     --data-dir "${REF}" --mcmc-nwalkers 256 \

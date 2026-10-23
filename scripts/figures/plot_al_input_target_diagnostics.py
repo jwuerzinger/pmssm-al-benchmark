@@ -29,6 +29,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import os
 import sys
 from pathlib import Path
@@ -336,14 +338,14 @@ def _pooled_cell_data(run_dirs, require_neutralino_lsp):
 
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True)
-@click.option("--output-dir", default="/ptmp/jwuerzin/analysis/all_runs/al_diag/",
+@click.option("--output-dir", default=str(paths.ANALYSIS_ROOT / "all_runs" / "al_diag"),
               show_default=True)
 @click.option("--models", default=None,
               help="Comma-separated subset of models to plot (default: all six "
                    "best-per-model picks).")
-@click.option("--mcmc-data-dir", default="/ptmp/jwuerzin/data/neutralino_v4",
+@click.option("--mcmc-data-dir", default=str(paths.DATA_ROOT / "neutralino_v4"),
               show_default=True,
               help="MCMC reference ntuples for corner_mcmc.png. Pass an empty "
                    "string to skip the MCMC corner.")
@@ -352,7 +354,7 @@ def _pooled_cell_data(run_dirs, require_neutralino_lsp):
                    "/ptmp/jwuerzin/data/18387358). Empty (default) skips it. "
                    "Uses the x_full/y_full .npy caches in --output-dir's "
                    "cache dir when present.")
-@click.option("--cache-dir", default="/ptmp/jwuerzin/analysis/all_runs",
+@click.option("--cache-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"),
               show_default=True,
               help="Where the baseline pool's x_full/y_full .npy caches live "
                    "(shared with plot_hit_rate_trajectories_multiseed).")

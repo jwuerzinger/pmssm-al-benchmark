@@ -46,6 +46,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import csv
 import glob as globmod
 import json
@@ -281,9 +283,9 @@ def _accuracy_series(run_dir: Path, dataset: str, role: str = "al"):
 
 
 @click.command()
-@click.option("--headtest-glob", default="/ptmp/jwuerzin/output/headtest_*",
+@click.option("--headtest-glob", default=str(paths.OUTPUT_ROOT / "headtest_*"),
               show_default=True)
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/joint/manifest_expr.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "joint" / "manifest_expr.csv"),
               show_default=True)
 @click.option("--true-value", default=1.0, show_default=True)
 @click.option("--tolerance", default=0.10, show_default=True,

@@ -31,6 +31,7 @@
 set -euo pipefail
 
 REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+source "${REPO_ROOT}/slurm/cluster_env.sh"
 cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 
@@ -39,13 +40,6 @@ mv "${REPO_ROOT}/logs/${SLURM_JOB_NAME}_${SLURM_JOB_ID}.out" \
    "${REPO_ROOT}/logs/${SLURM_JOB_NAME}_${SLURM_JOB_ID}_${TIMESTAMP}.out" 2>/dev/null || true
 mv "${REPO_ROOT}/logs/${SLURM_JOB_NAME}_${SLURM_JOB_ID}.err" \
    "${REPO_ROOT}/logs/${SLURM_JOB_NAME}_${SLURM_JOB_ID}_${TIMESTAMP}.err" 2>/dev/null || true
-
-# ---- Cluster config ----------------------------------------------------------
-if [[ -f "${REPO_ROOT}/slurm/cluster.conf" ]]; then
-    source "${REPO_ROOT}/slurm/cluster.conf"
-else
-    echo "[warn] slurm/cluster.conf not found — using defaults"
-fi
 
 export PYTHONUNBUFFERED=1
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
@@ -58,11 +52,10 @@ echo " Started: $(date)"
 echo " Repo:    ${REPO_ROOT}"
 echo "=========================================="
 
-PIXI_ENV="${PIXI_ENV:-rocm}"
 PYTHON="${REPO_ROOT}/.pixi/envs/${PIXI_ENV}/bin/python"
 if [[ ! -x "${PYTHON}" ]]; then
     echo "[setup] pixi env '${PIXI_ENV}' not found — running: pixi install -e ${PIXI_ENV}"
-    /u/jwuerzin/.pixi/bin/pixi install -e "${PIXI_ENV}"
+    "${PIXI_BIN}" install -e "${PIXI_ENV}"
 fi
 echo "[env] $(${PYTHON} --version)"
 
@@ -112,7 +105,7 @@ if [[ -n "${OUTPUT_DIR:-}" ]]; then
     echo "[opt] output dir: ${OUTPUT_DIR}"
 fi
 
-DATA_DIR="${CLUSTER_DATA_DIR:-/ptmp/jwuerzin/data}"
+DATA_DIR="${CLUSTER_DATA_DIR:-${CLUSTER_DATA_DIR}}"
 
 # Target axis. Defaults reproduce the relic-density behaviour exactly: same
 # pool, same MCMC reference, no --target flag added. AL_TARGET=ExpR switches to

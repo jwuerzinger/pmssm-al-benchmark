@@ -15,11 +15,11 @@
 set -euo pipefail
 REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"; mkdir -p logs
-[[ -f slurm/cluster.conf ]] && source slurm/cluster.conf  # TABPFN_TOKEN
+source "${REPO_ROOT}/slurm/cluster_env.sh"   # TABPFN_TOKEN, PIXI_ENV
 export TABPFN_TOKEN="${TABPFN_TOKEN:-}"
 export PYTHONUNBUFFERED=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
 export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
-PYTHON=$(ls -d /ptmp/jwuerzin/pixi-envs/pytorch-conda-forge-*/envs/rocm/bin/python | head -1)
+PYTHON="${REPO_ROOT}/.pixi/envs/${PIXI_ENV}/bin/python"
 "${PYTHON}" scripts/analysis/static_predictions_cache.py --target "${TARGET:-DMRD}" \
     --model "${MODELS:-transformer}" --seeds "${SEEDS:-1,2,3,4,5}" --every "${EVERY:-10}" ${EXTRA:-}

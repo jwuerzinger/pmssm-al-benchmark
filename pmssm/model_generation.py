@@ -11,6 +11,8 @@ import glob
 import os
 import signal
 import subprocess
+
+from pmssm import paths
 import shutil
 import numpy as np
 import pandas as pd
@@ -27,7 +29,7 @@ from .config import PARAM_ORDER, CSV_TO_MODELGEN, MODELGEN_STEP_DEFS, TARGET_CON
 # mounted, and that directory has no database, so SModelS would try to download
 # one — which cannot work on a compute node with no internet. setup.sh honours a
 # pre-set value, so exporting this into the subprocess is the fix.
-DEFAULT_SMODELS_CACHEDIR = "/ptmp/jwuerzin/cache/smodels"
+DEFAULT_SMODELS_CACHEDIR = str(paths.SMODELS_CACHE)
 
 # Per-worker subprocess wall-clock budget, seconds. SModelS has no internal
 # timeout (neither run_SModelS nor the pythia8 wrapper takes one), so a
@@ -166,7 +168,7 @@ def _run_modelgen(df, output_dir, logger, label="", target="DMRD"):
 
     pixi_path = shutil.which("pixi")
     if pixi_path is None:
-        for path in [Path.home() / ".pixi" / "bin" / "pixi", Path("/u/jwuerzin/.pixi/bin/pixi")]:
+        for path in [Path.home() / ".pixi" / "bin" / "pixi"]:
             if path.exists():
                 pixi_path = str(path)
                 break

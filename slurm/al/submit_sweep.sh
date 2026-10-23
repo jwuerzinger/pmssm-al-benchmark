@@ -62,12 +62,7 @@ cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 
 # ---- Cluster config ----------------------------------------------------------
-if [[ -f "${REPO_ROOT}/slurm/cluster.conf" ]]; then
-    source "${REPO_ROOT}/slurm/cluster.conf"
-else
-    echo "[warn] slurm/cluster.conf not found — using defaults"
-    echo "       cp slurm/cluster.conf.template slurm/cluster.conf"
-fi
+source "${REPO_ROOT}/slurm/cluster_env.sh"
 
 export PYTHONUNBUFFERED=1
 export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
@@ -101,11 +96,10 @@ echo "[config] Config file: ${CONFIG_FILE}"
 echo "[config] Sweep index: ${SLURM_ARRAY_TASK_ID}"
 
 # ---- Pixi environment --------------------------------------------------------
-PIXI_ENV="${PIXI_ENV:-cuda}"
 PYTHON="${REPO_ROOT}/.pixi/envs/${PIXI_ENV}/bin/python"
 if [[ ! -x "${PYTHON}" ]]; then
     echo "[setup] pixi env '${PIXI_ENV}' not found — running: pixi install -e ${PIXI_ENV}"
-    /u/jwuerzin/.pixi/bin/pixi install -e "${PIXI_ENV}"
+    "${PIXI_BIN}" install -e "${PIXI_ENV}"
 fi
 if [[ ! -x "${PYTHON}" ]]; then
     echo "[error] Python executable not found after pixi install: ${PYTHON}"
@@ -120,7 +114,7 @@ echo "[gpu] Using --gpu-ids 0 (single GPU per array task)"
 
 # ---- Output directory (one subdirectory per task) ----------------------------
 SWEEP_SCRIPT="${AL_SWEEP_SCRIPT:-pipelines/active_learning_transformer.py}"
-BASE_OUTPUT_DIR="${AL_OUTPUT_DIR:-/ptmp/jwuerzin/output/sweep_output}"
+BASE_OUTPUT_DIR="${AL_OUTPUT_DIR:-${CLUSTER_OUTPUT_DIR}/sweep_output}"
 TASK_OUTPUT_DIR="${BASE_OUTPUT_DIR}/task_${SLURM_ARRAY_TASK_ID}"
 AL_DATA_DIR="${AL_DATA_DIR:-${CLUSTER_DATA_DIR}}"
 

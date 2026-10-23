@@ -19,6 +19,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 # ------------------------------------------------------------------------------
 
+from pmssm import paths
+
 import sys
 from pathlib import Path
 
@@ -160,11 +162,11 @@ def _draw_baseline_seed_curves(ax, rows, color):
 
 
 @click.command()
-@click.option("--manifest", default="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",
+@click.option("--manifest", default=str(paths.ANALYSIS_ROOT / "all_runs" / "sweep_manifest.csv"),
               show_default=True)
 @click.option("--sweep-id", default=None,
               help="Filter to one sweep_id (default: use all matching rows).")
-@click.option("--output-dir", default="/ptmp/jwuerzin/analysis/all_runs/",
+@click.option("--output-dir", default=str(paths.ANALYSIS_ROOT / "all_runs"),
               show_default=True)
 @click.option("--target", default="DMRD", show_default=True)
 @click.option("--tolerances", default="0.10,0.20,0.50", show_default=True)
