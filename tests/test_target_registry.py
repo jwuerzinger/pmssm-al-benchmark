@@ -2,7 +2,7 @@
 
 Run directly (this repo has no pytest harness):
 
-    ./.pixi/envs/rocm/bin/python tests/test_target_registry.py
+    python tests/test_target_registry.py      # or: pixi run -e rocm test
 
 The point of these tests is asymmetric. For ``DMRD`` they pin the *historical*
 behaviour: the relic-density path fed published numbers, so every registry
@@ -11,14 +11,18 @@ hardcoded before. For ``ExpR`` they pin the new contract: the boundary sits at
 log(r) = 0, the ``-1.`` sentinel is dropped, and the excluded ``r > 1`` half is
 kept rather than cut away.
 """
+# --- repository bootstrap: lets this file run from any directory --------------
 import sys
-import tempfile
 from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
+import tempfile
 
 import numpy as np
 import torch
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pmssm.config import TARGET_CONFIG, MODELGEN_STEP_DEFS
 from pmssm.data import transform_y, inverse_transform_y, target_validity_mask

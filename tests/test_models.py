@@ -2,6 +2,14 @@
 Quick test to verify all model architectures work correctly.
 Run this before the full training to catch any errors early.
 """
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 import warnings
 # Suppress nested tensor warning (expected with norm_first=True)
 warnings.filterwarnings('ignore', message='.*enable_nested_tensor.*')
@@ -96,5 +104,4 @@ print(f"   ✓ Loss: {loss.item():.6f}")
 
 print("\n" + "="*60)
 print("All tests passed! ✓")
-print("You can now run: python train_pmssm.py")
 print("="*60)

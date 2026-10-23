@@ -1,6 +1,14 @@
 """
 Quick test to verify get_model_name function works correctly.
 """
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 import pmssm
 
 print("Testing get_model_name function...\n")
