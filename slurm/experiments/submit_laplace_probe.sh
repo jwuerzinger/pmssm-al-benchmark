@@ -17,9 +17,9 @@
 #
 # Submit with partition and gres from cluster.conf, as the per-model scripts do:
 #   sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_1}" \
-#          slurm/submit_laplace_probe.sh
+#          slurm/experiments/submit_laplace_probe.sh
 set -uo pipefail
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 PYTHON="${REPO_ROOT}/.pixi/envs/${PIXI_ENV:-rocm}/bin/python"
 
@@ -33,7 +33,7 @@ echo "=========================================="
 
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 
-"${PYTHON}" -u scripts/laplace_uq_probe.py \
+"${PYTHON}" -u scripts/experiments/laplace_uq_probe.py \
     --models "${LAP_MODELS:-transformer,dnn,dnn_match_trafo}" \
     --output-dir "${LAP_OUT_DIR:-/ptmp/jwuerzin/analysis/all_runs}" \
     --eval-size "${LAP_EVAL_SIZE:-20000}" \

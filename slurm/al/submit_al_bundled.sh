@@ -7,7 +7,7 @@
 # (AL + baseline) — identical to the single-seed per-model submit scripts —
 # just fired off via srun inside a larger sbatch allocation.
 #
-# Invoked by slurm/submit_strategy_sweep.sh in BUNDLE_SEEDS mode. Not intended
+# Invoked by slurm/al/submit_strategy_sweep.sh in BUNDLE_SEEDS mode. Not intended
 # for direct use, but can be called manually by PRE-EXPORTING the env vars
 # (never via --export=KEY=VAL,...; see note below):
 #
@@ -16,7 +16,7 @@
 #          AL_OUTPUT_BASE=/ptmp/jwuerzin/output/active_learning_transformer_top_k_warm \
 #          AL_SWEEP_ID=20260422_190000
 #   sbatch --partition=${CLUSTER_PARTITION} --nodes=5 --gres=gpu:2 --exclusive \
-#          --export=ALL slurm/submit_al_bundled.sh
+#          --export=ALL slurm/al/submit_al_bundled.sh
 #
 # Note: AL_SEEDS MUST be pre-exported. SLURM's --export uses commas as entry
 # separators with no escape mechanism, so passing `AL_SEEDS=1,2,3,4,5` inline
@@ -43,7 +43,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 
 # ---- Validate required env ---------------------------------------------------
@@ -56,12 +56,12 @@ done
 
 # ---- Dispatch to per-model submit script ------------------------------------
 case "${AL_MODEL}" in
-    transformer) PER_MODEL_SCRIPT=slurm/submit_al_transformer.sh;;
-    dnn)         PER_MODEL_SCRIPT=slurm/submit_al_dnn.sh;;
-    dnn_match_trafo) PER_MODEL_SCRIPT=slurm/submit_al_dnn.sh;;
-    deep_gp)     PER_MODEL_SCRIPT=slurm/submit_al_gp_deep.sh;;
-    exact_gp)    PER_MODEL_SCRIPT=slurm/submit_al_gp_exact.sh;;
-    tabpfn)      PER_MODEL_SCRIPT=slurm/submit_al_tabpfn.sh;;
+    transformer) PER_MODEL_SCRIPT=slurm/al/submit_al_transformer.sh;;
+    dnn)         PER_MODEL_SCRIPT=slurm/al/submit_al_dnn.sh;;
+    dnn_match_trafo) PER_MODEL_SCRIPT=slurm/al/submit_al_dnn.sh;;
+    deep_gp)     PER_MODEL_SCRIPT=slurm/al/submit_al_gp_deep.sh;;
+    exact_gp)    PER_MODEL_SCRIPT=slurm/al/submit_al_gp_exact.sh;;
+    tabpfn)      PER_MODEL_SCRIPT=slurm/al/submit_al_tabpfn.sh;;
     *) echo "[error] unknown AL_MODEL: ${AL_MODEL}" >&2; exit 1;;
 esac
 
@@ -235,7 +235,7 @@ echo "=========================================="
 # Archive this bundle's runs to non-purged storage (ptmp deletes files
 # unaccessed for ~12 weeks). Pattern-scoped to this bundle's own run dirs so
 # concurrently finishing bundles never race on each other's tarballs.
-bash "${REPO_ROOT}/scripts/archive_runs.sh" \
+bash "${REPO_ROOT}/scripts/campaign/archive_runs.sh" \
     "$(dirname "${AL_OUTPUT_BASE}")" \
     /viper/u2/jwuerzin/pmssm-archive/runs \
     "$(basename "${AL_OUTPUT_BASE}")_seed*" \

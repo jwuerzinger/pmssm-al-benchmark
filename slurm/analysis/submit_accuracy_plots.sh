@@ -9,10 +9,10 @@
 # at <run_dir>/accuracy_trajectory.json so re-runs are near-instant.
 #
 # Submit from repo root:
-#   sbatch slurm/submit_accuracy_plots.sh
+#   sbatch slurm/analysis/submit_accuracy_plots.sh
 #
 # To force re-evaluation (e.g. after a code change in the predict path):
-#   sbatch --export=ALL,REFRESH=1 slurm/submit_accuracy_plots.sh
+#   sbatch --export=ALL,REFRESH=1 slurm/analysis/submit_accuracy_plots.sh
 #
 # Note: TabPFN is intentionally not evaluated here -- AL TabPFN runs save no
 # per-iteration weight file, so reproducing AL-time predictions would require
@@ -30,7 +30,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 
@@ -49,7 +49,7 @@ fi
 
 export PYTHONUNBUFFERED=1
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 
 echo "=========================================="
 echo " Job:     ${SLURM_JOB_NAME} | ID: ${SLURM_JOB_ID}"
@@ -133,7 +133,7 @@ if [[ "${AL_TARGET}" != "DMRD" ]]; then
     echo "[opt] target: ${AL_TARGET} (pool ${TARGET_POOL}, no MCMC reference)"
 fi
 
-"${PYTHON}" scripts/plot_hit_rate_trajectories_multiseed.py \
+"${PYTHON}" scripts/figures/plot_hit_rate_trajectories_multiseed.py \
     --compute-accuracy \
     --accuracy-device "${ACC_DEVICE}" \
     $( [[ "${AL_TARGET}" == "DMRD" ]] && printf '%s %s %s %s' \

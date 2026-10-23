@@ -10,10 +10,10 @@
 # auto-detected below and forwarded as --gpu-ids.
 #
 # Submit from repo root (partition/gres come from cluster.conf):
-#   sbatch $(slurm/cluster_flags.sh 1gpu) slurm/submit_al_tabpfn.sh
+#   source slurm/cluster.conf; sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_1}" slurm/al/submit_al_tabpfn.sh
 #
 # Or override on the command line:
-#   sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_1}" slurm/submit_al_tabpfn.sh
+#   sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_1}" slurm/al/submit_al_tabpfn.sh
 #
 # Customize via environment variables (export or --export=ALL,VAR=val):
 #   AL_N_SAMPLES              Initial dataset size               (default: 2000)
@@ -36,13 +36,13 @@
 #
 # Examples:
 #   # Standard production run (with data generation):
-#   sbatch slurm/submit_al_tabpfn.sh
+#   sbatch slurm/al/submit_al_tabpfn.sh
 #
 #   # Without data generation (ML pipeline only):
-#   sbatch --export=ALL,AL_GENERATE_DATA= slurm/submit_al_tabpfn.sh
+#   sbatch --export=ALL,AL_GENERATE_DATA= slurm/al/submit_al_tabpfn.sh
 #
 #   # Entropy batch selection:
-#   sbatch --export=ALL,AL_SELECTION_STRATEGY=entropy_batch slurm/submit_al_tabpfn.sh
+#   sbatch --export=ALL,AL_SELECTION_STRATEGY=entropy_batch slurm/al/submit_al_tabpfn.sh
 # ==============================================================================
 #SBATCH --job-name=al_tabpfn
 #SBATCH --nodes=1
@@ -58,7 +58,7 @@
 set -euo pipefail
 
 # ---- Resolve repo root -------------------------------------------------------
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -78,8 +78,8 @@ fi
 # Set it via: export TABPFN_TOKEN="<key>"  (get key at https://ux.priorlabs.ai/account)
 if [[ -z "${TABPFN_TOKEN:-}" ]]; then
     echo "[error] TABPFN_TOKEN is not set. Cannot run TabPFN without a license token."
-    echo "        Submit via submit_slurm.sh (prompts automatically), or:"
-    echo "        export TABPFN_TOKEN='<your-api-key>' && bash submit_slurm.sh"
+    echo "        Put TABPFN_TOKEN=<your-api-key> into slurm/cluster.conf (see cluster.conf.template)"
+    echo "        or export it before sbatch --export=ALL."
     exit 1
 fi
 export TABPFN_TOKEN
@@ -91,7 +91,7 @@ export PYTHONUNBUFFERED=1
 # value. Only the r-value target's step list needs this; harmless otherwise.
 export SMODELS_CACHEDIR="${SMODELS_CACHEDIR:-/ptmp/jwuerzin/cache/smodels}"
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 
 echo "=========================================="
 echo " Job:     ${SLURM_JOB_NAME} | ID: ${SLURM_JOB_ID}"
@@ -144,7 +144,7 @@ echo "[params] AL_OUTPUT_DIR=${AL_OUTPUT_DIR:-/ptmp/jwuerzin/output/active_learn
 echo "[params] AL_GENERATE_DATA=${AL_GENERATE_DATA:---generate-data}"
 
 # ---- Run active learning -----------------------------------------------------
-source "${REPO_ROOT}/slurm/resume_args.sh"
+source "${REPO_ROOT}/slurm/al/resume_args.sh"
 
 "${PYTHON}" pipelines/active_learning_tabpfn.py \
     --n-samples "${AL_N_SAMPLES:-2000}" \

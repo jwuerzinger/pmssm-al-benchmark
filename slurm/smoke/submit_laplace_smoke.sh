@@ -4,7 +4,7 @@
 # Bernoulli deep GP after the checkpoint-reload fix.
 #
 # Three things, in increasing cost:
-#   1. scripts/verify_laplace_gpc.py at production's initial n (1600) on the GPU,
+#   1. scripts/experiments/verify_laplace_gpc.py at production's initial n (1600) on the GPU,
 #      which checks the implementation against R&W's own stated properties and
 #      extrapolates the per-step cost cubically to the n the AL loop reaches.
 #   2. laplace_gpc end to end for 2 iterations with BALD.
@@ -16,7 +16,7 @@
 # cls_entropy is not smoked separately: it shares every line with bald except
 # which score the head returns.
 #
-#   sbatch slurm/submit_laplace_smoke.sh
+#   sbatch slurm/smoke/submit_laplace_smoke.sh
 # ==============================================================================
 #SBATCH --job-name=laplace_smoke
 #SBATCH --partition=apudev
@@ -30,13 +30,13 @@
 #SBATCH --error=logs/%x_%j.err
 
 set -uo pipefail
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p logs
 
 export PYTHONUNBUFFERED=1
 export SMODELS_CACHEDIR="${SMODELS_CACHEDIR:-/ptmp/jwuerzin/cache/smodels}"
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 export OPENBLAS_NUM_THREADS=1
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
 PYTHON="${REPO_ROOT}/.pixi/envs/rocm/bin/python"
@@ -46,7 +46,7 @@ OUT="/ptmp/jwuerzin/output/laplace_smoke_${SLURM_JOB_ID}"
 echo "=============================================================="
 echo " 1. verify the Laplace GPC against R&W's stated properties"
 echo "=============================================================="
-"${PYTHON}" scripts/verify_laplace_gpc.py --n 1600 --dim 9 --device cuda \
+"${PYTHON}" scripts/experiments/verify_laplace_gpc.py --n 1600 --dim 9 --device cuda \
     --iters 40 --time-scaling
 echo "[smoke] verify exit=$?"
 

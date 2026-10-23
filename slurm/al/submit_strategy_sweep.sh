@@ -34,14 +34,14 @@
 #                 --dim-feedforward 400). Empty by default.
 #
 # Usage:
-#   bash slurm/submit_strategy_sweep.sh                     # full sweep
-#   DRY_RUN=1 bash slurm/submit_strategy_sweep.sh           # dry-run
+#   bash slurm/al/submit_strategy_sweep.sh                     # full sweep
+#   DRY_RUN=1 bash slurm/al/submit_strategy_sweep.sh           # dry-run
 #   MODELS=transformer STRATEGIES=top_k_tol_only WARM_MODES=warm SEEDS=1 \
-#       bash slurm/submit_strategy_sweep.sh                 # 1 job
+#       bash slurm/al/submit_strategy_sweep.sh                 # 1 job
 # =============================================================================
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "${REPO_ROOT}"
 
 MANIFEST="${MANIFEST:-/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv}"
@@ -96,18 +96,18 @@ N_SKIPPED=0
 for model in ${MODELS//,/ }; do
     model_extra=""          # per-model architecture args, set in the case below
     case "${model}" in
-        transformer) submit_script="slurm/submit_al_transformer.sh"; model_tag="transformer";;
-        dnn)         submit_script="slurm/submit_al_dnn.sh";         model_tag="dnn";;
+        transformer) submit_script="slurm/al/submit_al_transformer.sh"; model_tag="transformer";;
+        dnn)         submit_script="slurm/al/submit_al_dnn.sh";         model_tag="dnn";;
         # Same driver as dnn; "matched" IS the architecture, chosen to match the
         # transformer's parameter count (the plain DNN is 4 layers x 256). Kept
         # here rather than left to EXTRA_AL_ARGS so the two DNN arms cannot
         # silently become the same network.
         dnn_match_trafo)
-                     submit_script="slurm/submit_al_dnn.sh";         model_tag="dnn_match_trafo";
+                     submit_script="slurm/al/submit_al_dnn.sh";         model_tag="dnn_match_trafo";
                      model_extra="--num-layers 3 --dim-feedforward 400";;
-        deep_gp)     submit_script="slurm/submit_al_gp_deep.sh";     model_tag="deep_gp";;
-        exact_gp)    submit_script="slurm/submit_al_gp_exact.sh";    model_tag="exact_gp";;
-        tabpfn)      submit_script="slurm/submit_al_tabpfn.sh";      model_tag="tabpfn";;
+        deep_gp)     submit_script="slurm/al/submit_al_gp_deep.sh";     model_tag="deep_gp";;
+        exact_gp)    submit_script="slurm/al/submit_al_gp_exact.sh";    model_tag="exact_gp";;
+        tabpfn)      submit_script="slurm/al/submit_al_tabpfn.sh";      model_tag="tabpfn";;
         *) echo "[error] unknown model: ${model}"; exit 1;;
     esac
 
@@ -191,7 +191,7 @@ for model in ${MODELS//,/ }; do
                         --mem="${mem}" \
                         --exclusive \
                         --export=ALL \
-                        slurm/submit_al_bundled.sh)
+                        slurm/al/submit_al_bundled.sh)
                     echo "[bundled]   ${JOB_ID}  ${manifest_model}/${strategy}/${warm} × ${n_seeds} seeds"
                 fi
 

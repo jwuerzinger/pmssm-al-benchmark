@@ -16,8 +16,8 @@
 #     Small n_select, because 15 minutes has to cover SPheno, micrOmegas and
 #     SModelS for every model.
 #
-#   sbatch slurm/submit_housekeeping_smoke.sh              # wiring
-#   MODE=generate sbatch --export=ALL slurm/submit_housekeeping_smoke.sh
+#   sbatch slurm/smoke/submit_housekeeping_smoke.sh              # wiring
+#   MODE=generate sbatch --export=ALL slurm/smoke/submit_housekeeping_smoke.sh
 # ==============================================================================
 #SBATCH --job-name=hk_smoke
 #SBATCH --partition=apudev
@@ -31,7 +31,7 @@
 #SBATCH --error=logs/%x_%j.err
 
 set -uo pipefail
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p logs
 [[ -f slurm/cluster.conf ]] && source slurm/cluster.conf

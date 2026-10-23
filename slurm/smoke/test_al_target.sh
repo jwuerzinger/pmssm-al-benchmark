@@ -13,7 +13,7 @@
 #   source slurm/cluster.conf
 #   AL_TARGET=ExpR AL_DRIVER=transformer \
 #   sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_1}" \
-#          --export=ALL slurm/test_al_target.sh
+#          --export=ALL slurm/smoke/test_al_target.sh
 #
 # Env:
 #   AL_TARGET      DMRD | ExpR                        (default: ExpR)
@@ -34,7 +34,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 
@@ -46,7 +46,7 @@ fi
 
 export PYTHONUNBUFFERED=1
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 # See slurm/submit_al_*.sh: Run3ModelGen's setup.sh would otherwise point this
 # at the repo checkout, which holds no database, and compute nodes cannot fetch.
 export SMODELS_CACHEDIR="${SMODELS_CACHEDIR:-/ptmp/jwuerzin/cache/smodels}"

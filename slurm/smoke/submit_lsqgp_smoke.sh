@@ -14,10 +14,11 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 set -uo pipefail
-cd "${SLURM_SUBMIT_DIR}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+cd "${REPO_ROOT}"
 export PYTHONUNBUFFERED=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=8
-export PYTHONPATH="${SLURM_SUBMIT_DIR}:${SLURM_SUBMIT_DIR}/al_pmssmwithgp/model:${PYTHONPATH:-}"
-PY="${SLURM_SUBMIT_DIR}/.pixi/envs/rocm/bin/python"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+PY="${REPO_ROOT}/.pixi/envs/rocm/bin/python"
 POOL=/ptmp/jwuerzin/data/260804
 OUT=/ptmp/jwuerzin/output/lsq_smoke_${SLURM_JOB_ID}
 rc=0

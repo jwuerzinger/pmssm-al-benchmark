@@ -19,17 +19,18 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 set -uo pipefail
-cd "${SLURM_SUBMIT_DIR}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+cd "${REPO_ROOT}"
 export PYTHONUNBUFFERED=1
-export PYTHONPATH="${SLURM_SUBMIT_DIR}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 export OMP_NUM_THREADS=8
 
 .pixi/envs/rocm/bin/python - <<'PY'
 import sys, glob
 from pathlib import Path
 import numpy as np, torch, gpytorch
-sys.path.insert(0, "scripts"); sys.path.insert(0, "al_pmssmwithgp/model"); sys.path.insert(0, ".")
-from plot_hit_rate_trajectories_multiseed import (
+sys.path.insert(0, "al_pmssmwithgp/model"); sys.path.insert(0, ".")
+from scripts.figures.plot_hit_rate_trajectories_multiseed import (
     _load_iter_model, _load_xy_full, _parse_run_kwargs_from_log,
     _static_random_indices)
 from pmssm.data import build_norm_tensors, normalize_x, transform_y

@@ -6,11 +6,17 @@
 # The Python scripts handle sweep logic via --config-file + --sweep-index.
 #
 # Usage (submit from repo root; partition/gres come from cluster.conf):
-#   sbatch $(slurm/cluster_flags.sh 1gpu) --array=0-8 slurm/submit_sweep.sh <config.yaml>
+#   source slurm/cluster.conf
+#   sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_1}" \
+#       --array=0-7 slurm/al/submit_sweep.sh <config.yaml>
 #
 # The config file path is the first positional argument ($1). It can be
-# relative (resolved from repo root) or absolute. Example configs:
-#   test_config.yaml   — 8 combinations (epochs × dropout × strategy)
+# relative (resolved from repo root) or absolute. Each key lists the values to
+# sweep; the array index selects one combination of the product. Example
+# (8 combinations, indices 0-7):
+#   epochs: [100, 200]
+#   dropout: [0.1, 0.15]
+#   selection_strategy: [top_k, entropy_batch]
 #
 # Customize via environment variables:
 #   AL_SWEEP_SCRIPT   Script to run (default: pipelines/active_learning_transformer.py)
@@ -20,18 +26,18 @@
 #   AL_EXTRA_ARGS     Any additional flags passed verbatim to the script
 #
 # Examples:
-#   # Transformer sweep (8 combinations in test_config.yaml, indices 0-7):
-#   sbatch --array=0-7 slurm/submit_sweep.sh test_config.yaml
+#   # Transformer sweep over the example config above:
+#   sbatch --array=0-7 slurm/al/submit_sweep.sh sweep.yaml
 #
 #   # GP sweep with custom config:
 #   sbatch --array=0-5 \
 #       --export=ALL,AL_SWEEP_SCRIPT=pipelines/active_learning_gp.py,AL_OUTPUT_DIR=gp_sweep \
-#       slurm/submit_sweep.sh my_gp_sweep.yaml
+#       slurm/al/submit_sweep.sh my_gp_sweep.yaml
 #
 #   # TabPFN sweep:
 #   sbatch --array=0-3 \
 #       --export=ALL,AL_SWEEP_SCRIPT=pipelines/active_learning_tabpfn.py \
-#       slurm/submit_sweep.sh tabpfn_sweep.yaml
+#       slurm/al/submit_sweep.sh tabpfn_sweep.yaml
 #
 # Note: The sweep script handles all model-specific flags via the YAML config.
 #       Only --config-file, --sweep-index, --output-dir, and --gpu-ids are
@@ -51,7 +57,7 @@
 set -euo pipefail
 
 # ---- Resolve repo root -------------------------------------------------------
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 
@@ -64,7 +70,7 @@ else
 fi
 
 export PYTHONUNBUFFERED=1
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 
 echo "=========================================="
 echo " Job:      ${SLURM_JOB_NAME} | Array: ${SLURM_ARRAY_JOB_ID} | Task: ${SLURM_ARRAY_TASK_ID}"
@@ -77,7 +83,7 @@ echo "=========================================="
 CONFIG_ARG="${1:-${AL_CONFIG_FILE:-}}"
 if [[ -z "${CONFIG_ARG}" ]]; then
     echo "[error] No config file specified."
-    echo "[error] Usage: sbatch --array=0-N slurm/submit_sweep.sh <config.yaml>"
+    echo "[error] Usage: sbatch --array=0-N slurm/al/submit_sweep.sh <config.yaml>"
     exit 1
 fi
 

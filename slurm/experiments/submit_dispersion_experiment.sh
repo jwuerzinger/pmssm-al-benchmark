@@ -5,14 +5,14 @@
 #
 # Retrains the same architecture, cold and at matched size, on training sets
 # that differ in one controlled way at a time (see the docstring of
-# scripts/dispersion_experiment.py for the arms and what each isolates).
+# scripts/experiments/dispersion_experiment.py for the arms and what each isolates).
 #
 # 6 arms x 3 seeds = 18 tasks, one GPU each.
 #
 # Submit from repo root:
 #   source slurm/cluster.conf
 #   sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_1}" \
-#          slurm/submit_dispersion_experiment.sh
+#          slurm/experiments/submit_dispersion_experiment.sh
 # ==============================================================================
 #SBATCH --job-name=dispersion_exp
 #SBATCH --nodes=1
@@ -26,7 +26,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 
@@ -38,7 +38,7 @@ fi
 
 export PYTHONUNBUFFERED=1
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 
 ARMS=(al random stratified random_plus_inband al_ind1024 random_ind1024)
 SEEDS=(1 2 3)
@@ -61,7 +61,7 @@ echo " Started: $(date)"
 echo " Python:  $(${PYTHON} --version 2>&1)"
 echo "=========================================="
 
-"${PYTHON}" scripts/dispersion_experiment.py \
+"${PYTHON}" scripts/experiments/dispersion_experiment.py \
     --arm "${ARM}" \
     --seed "${SEED}" \
     --output-dir /ptmp/jwuerzin/analysis/dispersion_experiment

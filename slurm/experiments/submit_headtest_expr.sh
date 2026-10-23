@@ -30,7 +30,7 @@
 # run that looks like a right one.
 #
 # Usage:
-#   sbatch slurm/submit_headtest_expr.sh <model> <arm>
+#   sbatch slurm/experiments/submit_headtest_expr.sh <model> <arm>
 #     model : transformer | dnn | dnnmatch | exactgp | deepgp | tabpfn | lsqgp
 #             exactgp + bald/clsent uses the Laplace GP classifier (R&W 3.4);
 #             lsqgp is the least-squares classifier (R&W 6.5) on the exact GP.
@@ -62,7 +62,7 @@ set -euo pipefail
 MODEL="${1:?model required: transformer|dnn|dnnmatch|exactgp|deepgp|tabpfn}"
 ARM="${2:?arm required: tolrand|bald}"
 
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p logs
 

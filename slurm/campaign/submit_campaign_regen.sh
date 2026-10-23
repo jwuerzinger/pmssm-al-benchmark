@@ -10,7 +10,7 @@
 # three days means the figures on disk are always current for whatever has
 # landed, and the last snapshot before the horizon is the one that matters.
 #
-# Order follows the documented regeneration sequence (slurm/submit_expr_final_regen.sh):
+# Order follows the documented regeneration sequence (doc/REPRODUCING_THE_PAPER.md):
 #   0. back up the paper's figures BEFORE anything overwrites them
 #   1. refresh the manifests, or every manifest-driven step is blind to whatever
 #      finished last
@@ -22,13 +22,9 @@
 #   5. copy and rename the renders into the paper's figure directories
 #   6. rebuild the PDF
 #
-# Step 10 of submit_expr_final_regen.sh (the SModelS figure companion) is
-# deliberately absent: ALPaper commit b0561f6 deleted pmssm-expr-figures.tex, so
-# build_expr_figure_report.py now writes an orphan and its latexmk call fails.
-#
 # Submit:
 #   CAMPAIGN_ID=c200_... REGEN_HORIZON=2026-10-15 \
-#   sbatch --partition=apu1 --gres=gpu:1 --mem=110000 slurm/submit_campaign_regen.sh
+#   sbatch --partition=apu1 --gres=gpu:1 --mem=110000 slurm/campaign/submit_campaign_regen.sh
 #
 # Env: CAMPAIGN_ID (arm sweep id), REGEN_HORIZON (YYYY-MM-DD),
 #      REGEN_EVERY (default 3days), COPY_TO_PAPER=0 to render without touching
@@ -46,14 +42,14 @@
 
 set -uo pipefail
 
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p logs analysis/accuracy
 
 [[ -f "${REPO_ROOT}/slurm/cluster.conf" ]] && source "${REPO_ROOT}/slurm/cluster.conf"
 export PYTHONUNBUFFERED=1
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/scripts:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 PY="${REPO_ROOT}/.pixi/envs/${PIXI_ENV:-rocm}/bin/python"
 
 CAMPAIGN_ID="${CAMPAIGN_ID:-}"
@@ -107,12 +103,12 @@ fi
 step "1/6 refresh the manifests"
 for M in /ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv \
          /ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv; do
-    "${PY}" scripts/update_sweep_manifest.py --manifest "${M}" --all 2>&1 | tail -3
+    "${PY}" scripts/campaign/update_sweep_manifest.py --manifest "${M}" --all 2>&1 | tail -3
 done
-"${PY}" scripts/build_joint_manifest.py \
+"${PY}" scripts/campaign/build_joint_manifest.py \
     --manifest /ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv \
     --out "${J}/manifest_dmrd.csv" 2>&1 | tail -3
-"${PY}" scripts/build_joint_manifest.py \
+"${PY}" scripts/campaign/build_joint_manifest.py \
     --manifest /ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv \
     --model-tag expr --out "${J}/manifest_expr.csv" 2>&1 | tail -3
 
@@ -185,7 +181,7 @@ regen_target () {
 
     step "2/6 [${T}] hit rate, hits/desired and verdict accuracy"
     # FIRST: writes random_baseline_prevalence.json that later steps divide by.
-    "${PY}" scripts/plot_hit_rate_trajectories_multiseed.py \
+    "${PY}" scripts/figures/plot_hit_rate_trajectories_multiseed.py \
         --manifest "${M}" --output-dir "${O}" --pool-cache-dir "${PC}" \
         --baseline-data-dir "${POOL}" --tolerances 0.10,0.20,0.50 \
         --mark-iteration 40 --min-seeds 2 --min-seeds-axis 1 \
@@ -193,7 +189,7 @@ regen_target () {
         --compute-accuracy --accuracy-device "${DEV}" 2>&1 | tail -20
 
     step "3/6 [${T}] per-seed, R2, MSE, compute, coverage, support, inputs"
-    "${PY}" scripts/plot_hit_rate_seeds_per_model.py \
+    "${PY}" scripts/figures/plot_hit_rate_seeds_per_model.py \
         --manifest "${M}" --output-dir "${O}" --baseline-data-dir "${POOL}" \
         --tolerances 0.10,0.20,0.50 "${T_ONLY[@]}" \
         2>&1 | tail -3
@@ -203,7 +199,7 @@ regen_target () {
     # their figures had been frozen at 2026-08-14 while the rest refreshed each
     # cycle. One extra pass per referenced (strategy, warm) pair renders them.
     for _sw in "top_k:warm" "entropy_batch:warm"; do
-        "${PY}" scripts/plot_hit_rate_seeds_per_model.py \
+        "${PY}" scripts/figures/plot_hit_rate_seeds_per_model.py \
             --manifest "${M}" --output-dir "${O}" --baseline-data-dir "${POOL}" \
             --tolerances 0.10,0.20,0.50 "${T_ONLY[@]}" \
             --strategy "${_sw%%:*}" --warm-start "${_sw##*:}" 2>&1 | tail -2
@@ -212,20 +208,20 @@ regen_target () {
     # moves with the campaign, but it was never in this script and both
     # mcmc_diagnostics_comparison.png and al_diagnostics_comparison.png had sat
     # at their August renders. ExpR has no chains, hence --skip-mcmc there.
-    "${PY}" scripts/mcmc_diagnostics.py \
+    "${PY}" scripts/analysis/mcmc_diagnostics.py \
         --al-manifest "${M}" --output-dir "${O}" \
         $( [[ ${T} == ExpR ]] && echo "--skip-mcmc" || echo "--data-dir ${MCMC_POOL}" ) \
         2>&1 | tail -3
-    "${PY}" scripts/plot_r2_trajectories_multiseed.py \
+    "${PY}" scripts/figures/plot_r2_trajectories_multiseed.py \
         --manifest "${M}" --output-dir "${O}" 2>&1 | tail -2
-    "${PY}" scripts/plot_mse_trajectories_multiseed.py \
+    "${PY}" scripts/figures/plot_mse_trajectories_multiseed.py \
         --manifest "${M}" --output-dir "${O}" --model-tag "${TAG}" 2>&1 | tail -2
-    "${PY}" scripts/plot_compute_vs_dataset.py \
+    "${PY}" scripts/figures/plot_compute_vs_dataset.py \
         --manifest "${M}" --output-dir "${O}" --model-tag "${TAG}" \
         --baseline-data-dir "${POOL}" \
         "${T_MC[@]}" \
         2>&1 | tail -3
-    "${PY}" scripts/coverage_saturation.py \
+    "${PY}" scripts/analysis/coverage_saturation.py \
         --manifest "${M}" --output-dir "${O}" --cache-dir "${O}" \
         --baseline-data-dir "${POOL}" --support-source pool --model-tag "${TAG}" \
         $( [[ ${T} == ExpR ]] && echo "--target ExpR" ) 2>&1 | tail -3
@@ -234,13 +230,13 @@ regen_target () {
     # pool source was being run, so that figure had been frozen since August.
     # DMRD only: the emcee support needs a posterior, which ExpR has not got.
     if [[ "${T}" == "DMRD" ]]; then
-        "${PY}" scripts/coverage_saturation.py \
+        "${PY}" scripts/analysis/coverage_saturation.py \
             --manifest "${M}" --output-dir "${O}" --cache-dir "${O}" \
             --baseline-data-dir "${POOL}" --support-source mcmc \
             --mcmc-data-dir "${MCMC_POOL}" --model-tag "${TAG}" 2>&1 | tail -3
     fi
     for side in in out; do
-        "${PY}" scripts/plot_support_efficiency.py \
+        "${PY}" scripts/figures/plot_support_efficiency.py \
             --manifest "${M}" --output-dir "${O}" --cache-dir "${O}" \
             --baseline-data-dir "${POOL}" --model-tag "${TAG}" \
             --band-side "${side}" --run-set-label joint \
@@ -253,28 +249,28 @@ regen_target () {
     # while its DMRD twin refreshed every cycle. The pool is passed explicitly
     # for both targets now, which is the only form that cannot inherit a
     # relic-density default.
-    "${PY}" scripts/plot_diversity_vs_budget.py \
+    "${PY}" scripts/figures/plot_diversity_vs_budget.py \
         --manifest "${M}" --output-dir "${O}" --model-tag "${TAG}" \
         --baseline-data-dir "${POOL}" --pool-cache "${PC}" \
         --run-set-label joint "${T_ONLY[@]}" \
         $( [[ ${T} == ExpR ]] && echo "--no-mcmc" ) \
         2>&1 | tail -3
-    "${PY}" scripts/plot_al_input_target_diagnostics.py \
+    "${PY}" scripts/figures/plot_al_input_target_diagnostics.py \
         --manifest "${M}" --output-dir "${O}" --cache-dir "${O}" \
         --model-tag "${TAG}" --baseline-data-dir "${POOL}" \
         "${T_MC[@]}" \
         2>&1 | tail -3
-    "${PY}" scripts/plot_pairwise_input_summary.py \
+    "${PY}" scripts/figures/plot_pairwise_input_summary.py \
         --manifest "${M}" --output-dir "${O}" \
         "${MC_ONLY[@]}" 2>&1 | tail -2
 
     if [[ "${SKIP_SLOW}" != "1" ]]; then
-        "${PY}" scripts/compute_yield_comparison.py \
+        "${PY}" scripts/analysis/compute_yield_comparison.py \
             --manifest "${M}" --output-dir "${O}" --baseline-data-dir "${POOL}" \
             --model-tag "${TAG}" --tolerance 0.10 \
             "${T_MC_VETO[@]}" \
             2>&1 | tail -6
-        "${PY}" scripts/evaluate_uq.py \
+        "${PY}" scripts/analysis/evaluate_uq.py \
             --manifest "${M}" --output-dir "${O}" --cache-dir "${O}" \
             --baseline-data-dir "${POOL}" --model-tag "${TAG}" \
             "${T_MC[@]}" \
@@ -305,11 +301,11 @@ for spec in "ExpR:/ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv:${J}/mani
     # curves extend rather than jump when the campaign's seeds arrive.
     GLOB='/ptmp/jwuerzin/output/headtest_*_20260821_*'
     [[ "${T}" == "DMRD" ]] && GLOB='/ptmp/jwuerzin/output/__none__*'
-    "${PY}" scripts/plot_prelim_paper_style.py \
+    "${PY}" scripts/figures/plot_prelim_paper_style.py \
         --headtest-glob "${GLOB}" --exclude-runs '_111422' \
         --manifest "${JOINT}" --arm-manifest "${SWEEP}" "${ARM_ID_ARGS[@]}" \
         --true-value "${TV}" --x-axis both --output-dir "${OUT}" 2>&1 | tail -12
-    "${PY}" scripts/plot_prelim_support.py \
+    "${PY}" scripts/figures/plot_prelim_support.py \
         --headtest-glob "${GLOB}" --exclude-runs '_111422' \
         --manifest "${JOINT}" --arm-manifest "${SWEEP}" "${ARM_ID_ARGS[@]}" \
         --pool-dir "${POOL}" --target "${T}" --true-value "${TV}" \
@@ -320,7 +316,7 @@ for spec in "ExpR:/ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv:${J}/mani
     # figure directories had never been refreshed since it was first made by
     # hand on 2026-09-10, while every other arm figure moved with each cycle.
     # It takes no headtest glob: it reads the campaign rows only.
-    "${PY}" scripts/plot_prelim_compute_support.py \
+    "${PY}" scripts/figures/plot_prelim_compute_support.py \
         --manifest "${JOINT}" --arm-manifest "${SWEEP}" "${ARM_ID_ARGS[@]}" \
         --pool-dir "${POOL}" --target "${T}" --true-value "${TV}" \
         --n-bins 12 --min-cell 20 --expect-cells 0 \
@@ -422,7 +418,7 @@ fi
 export CAMPAIGN_ID REGEN_HORIZON="${HORIZON}" REGEN_EVERY="${EVERY}"
 export COPY_TO_PAPER SKIP_SLOW
 NEXT=$(sbatch --parsable "--begin=now+${EVERY}" --partition=apu1 --gres=gpu:1 \
-       --mem=110000 --export=ALL slurm/submit_campaign_regen.sh)
+       --mem=110000 --export=ALL slurm/campaign/submit_campaign_regen.sh)
 if [[ -z "${NEXT}" ]]; then
     echo "[regen] WARNING: resubmission failed; the cycle has STOPPED." >&2
     exit 1

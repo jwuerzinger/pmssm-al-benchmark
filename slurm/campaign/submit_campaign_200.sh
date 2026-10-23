@@ -16,10 +16,10 @@
 #
 # entropy_batch is NOT here. Its 200-iteration continuations are the 12 b200*/
 # b200e* bundles queued on 2026-08-18, which keep their queue position; the
-# chaser (slurm/submit_campaign_chase.sh) tops those cells up too.
+# chaser (slurm/campaign/submit_campaign_chase.sh) tops those cells up too.
 #
 # This script only STARTS the cells. No fresh run reaches 200 iterations inside
-# the 24 h wall clock, so slurm/submit_campaign_chase.sh must be running to
+# the 24 h wall clock, so slurm/campaign/submit_campaign_chase.sh must be running to
 # resume them; submit it right after this.
 #
 # Why it is a wrapper rather than a loop of sbatch calls: submit_strategy_sweep.sh
@@ -28,14 +28,14 @@
 # flag set is not uniform across drivers, which is the entire content below.
 #
 # Usage:
-#   DRY_RUN=1 bash slurm/submit_campaign_200.sh     # print the 32 cells only
-#   bash slurm/submit_campaign_200.sh               # submit
-#   ARMS=tol_only_random bash slurm/submit_campaign_200.sh   # one arm
-#   TARGETS=ExpR bash slurm/submit_campaign_200.sh           # one target
+#   DRY_RUN=1 bash slurm/campaign/submit_campaign_200.sh     # print the 32 cells only
+#   bash slurm/campaign/submit_campaign_200.sh               # submit
+#   ARMS=tol_only_random bash slurm/campaign/submit_campaign_200.sh   # one arm
+#   TARGETS=ExpR bash slurm/campaign/submit_campaign_200.sh           # one target
 # =============================================================================
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "${REPO_ROOT}"
 
 N_ITERS="${N_ITERS:-200}"
@@ -113,7 +113,7 @@ run_group () {  # $1 target  $2 arm  $3 family  $4 models  $5 warm  $6 head_args
     # and a second bundle against the same run directories races the first on
     # state.pt. (That is exactly what happened when the lsq group was added on
     # 2026-08-21; 32 duplicates had to be cancelled by hand.) Cell names here
-    # must match job_name() in scripts/campaign_chase.py.
+    # must match job_name() in scripts/campaign/campaign_chase.py.
     local pending=""
     for m in ${models//,/ }; do
         local short jn tt
@@ -151,7 +151,7 @@ run_group () {  # $1 target  $2 arm  $3 family  $4 models  $5 warm  $6 head_args
     WARM_MODES="${warm}" \
     EXTRA_AL_ARGS="${extra}" \
     DRY_RUN="${DRY_RUN}" \
-        bash slurm/submit_strategy_sweep.sh 2>&1 | sed 's/^/    /' \
+        bash slurm/al/submit_strategy_sweep.sh 2>&1 | sed 's/^/    /' \
         | grep -Ev "^\s*\[sweep\] (models|strategies|warm_modes|seeds|dry_run|manifest)=" || true
 }
 
@@ -219,6 +219,6 @@ if [[ "${DRY_RUN}" == "1" ]]; then
     echo " DRY RUN: nothing was submitted"
 else
     echo " Next: sbatch the chaser, or these cells stop at the 24 h wall clock:"
-    echo "   CAMPAIGN_CELLS=${CELLS_CSV} bash slurm/submit_campaign_chase.sh"
+    echo "   CAMPAIGN_CELLS=${CELLS_CSV} bash slurm/campaign/submit_campaign_chase.sh"
 fi
 echo "=========================================="

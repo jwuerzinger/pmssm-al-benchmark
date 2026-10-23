@@ -14,12 +14,13 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 set -uo pipefail
-cd "${SLURM_SUBMIT_DIR}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+cd "${REPO_ROOT}"
 [[ -f slurm/cluster.conf ]] && source slurm/cluster.conf
 export PYTHONUNBUFFERED=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=8
-export PYTHONPATH="${SLURM_SUBMIT_DIR}:${SLURM_SUBMIT_DIR}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 export TABPFN_TOKEN="${TABPFN_TOKEN:-}"
-PY="${SLURM_SUBMIT_DIR}/.pixi/envs/rocm/bin/python"
+PY="${REPO_ROOT}/.pixi/envs/rocm/bin/python"
 OUT=/ptmp/jwuerzin/output/tabpfn_tol_smoke_${SLURM_JOB_ID}
 "${PY}" pipelines/active_learning_tabpfn.py \
     --target DMRD --n-iterations 2 --n-select 20 --n-candidates 5000 \

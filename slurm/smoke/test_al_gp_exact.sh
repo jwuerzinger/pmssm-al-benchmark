@@ -4,7 +4,7 @@
 #
 # Submit from repo root (partition/gres come from cluster.conf):
 #   sbatch --partition="${CLUSTER_PARTITION}" \
-#          --gres="${CLUSTER_GPU_GRES_2}" slurm/test_al_gp_exact.sh
+#          --gres="${CLUSTER_GPU_GRES_2}" slurm/smoke/test_al_gp_exact.sh
 #
 # Monitor:
 #   squeue -u $USER
@@ -26,7 +26,7 @@
 set -euo pipefail
 
 # ---- Resolve repo root (safe regardless of where sbatch was called from) ----
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 
@@ -40,7 +40,7 @@ fi
 
 export PYTHONUNBUFFERED=1
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 
 echo "=========================================="
 echo " Job:     ${SLURM_JOB_NAME} | ID: ${SLURM_JOB_ID}"
@@ -71,7 +71,7 @@ echo "[gpu] PIXI_ENV=${PIXI_ENV}"
 # ---- Run active learning (exact_gp, 5 iterations, with data generation) ------
 # --gpu-ids 0,1: AL model on cuda:0, baseline on cuda:1 (parallel processes)
 # Slurm remaps physical GPUs via CUDA_VISIBLE_DEVICES, so 0,1 are always correct
-source "${REPO_ROOT}/slurm/resume_args.sh"
+source "${REPO_ROOT}/slurm/al/resume_args.sh"
 
 "${PYTHON}" pipelines/active_learning_gp.py \
     --model-type exact_gp \

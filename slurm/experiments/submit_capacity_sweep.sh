@@ -18,9 +18,9 @@
 #
 # Submit with partition and gres from cluster.conf, as the per-model scripts do:
 #   sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_1}" \
-#          slurm/submit_capacity_sweep.sh
+#          slurm/experiments/submit_capacity_sweep.sh
 set -uo pipefail
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 PYTHON="${REPO_ROOT}/.pixi/envs/${PIXI_ENV:-rocm}/bin/python"
 
@@ -36,7 +36,7 @@ echo "=========================================="
 # on a shared node buys nothing.
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 
-"${PYTHON}" -u scripts/transformer_capacity_sweep.py \
+"${PYTHON}" -u scripts/experiments/transformer_capacity_sweep.py \
     --run-dir "${CAP_RUN_DIR:?CAP_RUN_DIR must be set}" \
     --output-dir "${CAP_OUT_DIR:-/ptmp/jwuerzin/analysis/all_runs}" \
     --eval-size "${CAP_EVAL_SIZE:-20000}" \

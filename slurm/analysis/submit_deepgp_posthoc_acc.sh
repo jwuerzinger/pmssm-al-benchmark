@@ -1,10 +1,10 @@
 #!/bin/bash
 # Recompute verdict accuracy from checkpoints for the classification GP arms,
 # whose run-time cache holds the positive-class fraction rather than an accuracy
-# (see scripts/deepgp_posthoc_accuracy.py). A GPU is needed because the deep GP
+# (see scripts/experiments/deepgp_posthoc_accuracy.py). A GPU is needed because the deep GP
 # posterior has to be evaluated on the 100k static eval set per iteration.
 #
-#   sbatch slurm/submit_deepgp_posthoc_acc.sh
+#   sbatch slurm/analysis/submit_deepgp_posthoc_acc.sh
 #SBATCH --job-name=dgp_acc
 #SBATCH --partition=apudev
 #SBATCH --nodes=1
@@ -16,13 +16,14 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 set -uo pipefail
-cd "${SLURM_SUBMIT_DIR}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+cd "${REPO_ROOT}"
 export PYTHONUNBUFFERED=1
-export PYTHONPATH="${SLURM_SUBMIT_DIR}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 export OPENBLAS_NUM_THREADS=1
 export OMP_NUM_THREADS=8
 
-.pixi/envs/rocm/bin/python scripts/deepgp_posthoc_accuracy.py \
+.pixi/envs/rocm/bin/python scripts/experiments/deepgp_posthoc_accuracy.py \
     --runs '/ptmp/jwuerzin/output/headtest_deepgp_*_seed1_20260821_11*' \
     --data-dir /ptmp/jwuerzin/data/260804 --target ExpR \
     --device cuda --write

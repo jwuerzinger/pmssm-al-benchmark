@@ -4,7 +4,7 @@
 #
 # Submit from repo root (partition/gres come from cluster.conf):
 #   sbatch --partition="${CLUSTER_PARTITION_DEV}" \
-#          --gres="${CLUSTER_GPU_GRES_1}" slurm/test_al_tabpfn.sh
+#          --gres="${CLUSTER_GPU_GRES_1}" slurm/smoke/test_al_tabpfn.sh
 #
 # Expected output: /ptmp/jwuerzin/output/test_al_tabpfn_output/ with 5 AL iterations
 # ==============================================================================
@@ -21,7 +21,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 
@@ -35,15 +35,15 @@ fi
 # Set it via: export TABPFN_TOKEN="<key>"  (get key at https://ux.priorlabs.ai/account)
 if [[ -z "${TABPFN_TOKEN:-}" ]]; then
     echo "[error] TABPFN_TOKEN is not set. Cannot run TabPFN without a license token."
-    echo "        Submit via submit_slurm_tests.sh (prompts automatically), or:"
-    echo "        export TABPFN_TOKEN='<your-api-key>' && bash submit_slurm_tests.sh"
+    echo "        Put TABPFN_TOKEN=<your-api-key> into slurm/cluster.conf (see cluster.conf.template)"
+    echo "        or export it before sbatch --export=ALL."
     exit 1
 fi
 export TABPFN_TOKEN
 
 export PYTHONUNBUFFERED=1
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 
 echo "=========================================="
 echo " Job:     ${SLURM_JOB_NAME} | ID: ${SLURM_JOB_ID}"
@@ -69,7 +69,7 @@ echo "[gpu] ROCR_VISIBLE_DEVICES=${ROCR_VISIBLE_DEVICES:-<not set>}"
 echo "[gpu] SLURM_GPUS_ON_NODE=${SLURM_GPUS_ON_NODE:-<not set>}"
 echo "[gpu] PIXI_ENV=${PIXI_ENV}"
 
-source "${REPO_ROOT}/slurm/resume_args.sh"
+source "${REPO_ROOT}/slurm/al/resume_args.sh"
 
 "${PYTHON}" pipelines/active_learning_tabpfn.py \
     --n-samples 500 \

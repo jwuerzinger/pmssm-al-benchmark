@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# The campaign's resume loop. Runs scripts/campaign_chase.py, then resubmits
+# The campaign's resume loop. Runs scripts/campaign/campaign_chase.py, then resubmits
 # itself six hours later, until a horizon date.
 #
 # Why a self-resubmitting job and not a dependency chain: reaching 200
@@ -18,7 +18,7 @@
 # Submit:
 #   CAMPAIGN_CELLS=/ptmp/jwuerzin/analysis/campaign/<id>_cells.csv \
 #   CAMPAIGN_HORIZON=2026-09-30 \
-#       sbatch --partition=apu1 --gres=gpu:1 --mem=16G slurm/submit_campaign_chase.sh
+#       sbatch --partition=apu1 --gres=gpu:1 --mem=16G slurm/campaign/submit_campaign_chase.sh
 #
 # Env:
 #   CAMPAIGN_CELLS    the cells CSV written by submit_campaign_200.sh (required)
@@ -42,7 +42,7 @@
 
 set -uo pipefail
 
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p logs
 
@@ -92,7 +92,7 @@ TODAY="$(date +%Y-%m-%d)"
 if [[ "${TODAY}" > "${HORIZON}" ]]; then
     echo "[chase] ${TODAY} is past the horizon ${HORIZON}; not chaining further."
     echo "[chase] Restart with: CAMPAIGN_CELLS=${CELLS} CAMPAIGN_HORIZON=<date> \\"
-    echo "        sbatch --partition=apu1 --gres=gpu:1 --mem=16G slurm/submit_campaign_chase.sh"
+    echo "        sbatch --partition=apu1 --gres=gpu:1 --mem=16G slurm/campaign/submit_campaign_chase.sh"
 else
     export CAMPAIGN_CELLS="${CELLS}" CAMPAIGN_HORIZON="${HORIZON}"
     export CHASE_RESUME_TO="${RESUME_TO}" CHASE_QUEUE_CAP="${QUEUE_CAP}"
@@ -107,11 +107,11 @@ else
         # is the assumption this design rests on, so it is checked not assumed.
         echo "[chase] dry-run: validating the chain with --test-only"
         sbatch --test-only "--begin=now+${EVERY}" --partition=apu1 --gres=gpu:1 \
-            --mem=16G --export=ALL slurm/submit_campaign_chase.sh 2>&1 | sed 's/^/        /'
+            --mem=16G --export=ALL slurm/campaign/submit_campaign_chase.sh 2>&1 | sed 's/^/        /'
     else
         NEXT="$(sbatch --parsable "--begin=now+${EVERY}" --partition=apu1 \
                 --gres=gpu:1 --mem=16G --export=ALL \
-                slurm/submit_campaign_chase.sh)"
+                slurm/campaign/submit_campaign_chase.sh)"
         if [[ -z "${NEXT}" ]]; then
             echo "[chase] WARNING: could not chain the next wake. The loop STOPS" >&2
             echo "        after this run. Restart it by hand; see the header." >&2
@@ -124,7 +124,7 @@ fi
 CHASE_FLAGS=(--cells "${CELLS}" --resume-to "${RESUME_TO}"
              --per-wake "${PER_WAKE}" --queue-cap "${QUEUE_CAP}")
 [[ "${DRY_RUN}" == "1" ]] && CHASE_FLAGS+=(--dry-run) || CHASE_FLAGS+=(--submit)
-"${PYTHON}" scripts/campaign_chase.py "${CHASE_FLAGS[@]}"
+"${PYTHON}" scripts/campaign/campaign_chase.py "${CHASE_FLAGS[@]}"
 RC=$?
 echo "[chase] campaign_chase.py exited ${RC}"
 
@@ -143,7 +143,7 @@ echo "[chase] campaign_chase.py exited ${RC}"
 # Those four need the tar expanded before they run.
 if [[ "${CHASE_PRUNE:-0}" == "1" ]]; then
     echo; echo "[chase] packing completed-iteration workspaces into debris.tar"
-    "${PYTHON}" scripts/prune_run_debris.py \
+    "${PYTHON}" scripts/campaign/prune_run_debris.py \
         --runs "${CHASE_PRUNE_GLOB:-/ptmp/jwuerzin/output/active_learning_*}" \
         --keep-last 3 --mode tar --max-dirs "${CHASE_PRUNE_MAX_DIRS:-4000}" \
         --deadline-min "${CHASE_PRUNE_DEADLINE_MIN:-60}" --apply 2>&1 | tail -6

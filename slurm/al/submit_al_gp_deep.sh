@@ -8,7 +8,7 @@
 #
 # Submit from repo root:
 #   source slurm/cluster.conf
-#   sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_2}" slurm/submit_al_gp_deep.sh
+#   sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_2}" slurm/al/submit_al_gp_deep.sh
 # ==============================================================================
 #SBATCH --job-name=al_gp_deep
 #SBATCH --nodes=1
@@ -23,7 +23,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -46,7 +46,7 @@ export PYTHONUNBUFFERED=1
 # value. Only the r-value target's step list needs this; harmless otherwise.
 export SMODELS_CACHEDIR="${SMODELS_CACHEDIR:-/ptmp/jwuerzin/cache/smodels}"
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 
 echo "=========================================="
 echo " Job:     ${SLURM_JOB_NAME} | ID: ${SLURM_JOB_ID}"
@@ -85,7 +85,7 @@ echo "[gpu] ROCR_VISIBLE_DEVICES=${ROCR_VISIBLE_DEVICES:-<not set>}"
 echo "[gpu] PIXI_ENV=${PIXI_ENV}"
 echo "[gpu] Using --gpu-ids ${GPU_IDS} (${N_GPUS} GPU(s) detected)"
 
-source "${REPO_ROOT}/slurm/resume_args.sh"
+source "${REPO_ROOT}/slurm/al/resume_args.sh"
 
 "${PYTHON}" pipelines/active_learning_gp.py \
     --model-type deep_gp \

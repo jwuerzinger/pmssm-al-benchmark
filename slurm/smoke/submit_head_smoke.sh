@@ -9,7 +9,7 @@
 # them. No data generation (--no-generate-data): the point is the training and
 # selection path, not the simulator.
 #
-#   sbatch slurm/submit_head_smoke.sh
+#   sbatch slurm/smoke/submit_head_smoke.sh
 # ==============================================================================
 #SBATCH --job-name=head_smoke
 #SBATCH --partition=apudev
@@ -23,13 +23,13 @@
 #SBATCH --error=logs/%x_%j.err
 
 set -uo pipefail
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p logs
 
 export PYTHONUNBUFFERED=1
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 export OPENBLAS_NUM_THREADS=1
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
 PYTHON="${REPO_ROOT}/.pixi/envs/rocm/bin/python"

@@ -21,7 +21,7 @@
 # Only the epoch budget is shortened (200/patience 20 against 10000/patience
 # 100), since the fault modes under test appear in the first forward pass.
 #
-#   sbatch slurm/submit_gp_head_smoke.sh
+#   sbatch slurm/smoke/submit_gp_head_smoke.sh
 # ==============================================================================
 #SBATCH --job-name=gp_head_smoke
 #SBATCH --partition=apudev
@@ -35,13 +35,13 @@
 #SBATCH --error=logs/%x_%j.err
 
 set -uo pipefail
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p logs
 
 export PYTHONUNBUFFERED=1
 export SMODELS_CACHEDIR="${SMODELS_CACHEDIR:-/ptmp/jwuerzin/cache/smodels}"
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 export OPENBLAS_NUM_THREADS=1
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
 PYTHON="${REPO_ROOT}/.pixi/envs/rocm/bin/python"

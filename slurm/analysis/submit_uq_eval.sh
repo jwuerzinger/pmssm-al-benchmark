@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Slurm job: post-hoc uncertainty-quantification evaluation (scripts/evaluate_uq.py).
+# Slurm job: post-hoc uncertainty-quantification evaluation (scripts/analysis/evaluate_uq.py).
 #
 # For each best-per-model pick this reloads per-iteration AL checkpoints,
 # evaluates the full predictive distribution on seeded static-random and MCMC
@@ -11,7 +11,7 @@
 #
 # Submit from repo root:
 #   sbatch --partition=$(. slurm/cluster.conf; echo ${CLUSTER_PARTITION}) \
-#          --gres=gpu:1 slurm/submit_uq_eval.sh
+#          --gres=gpu:1 slurm/analysis/submit_uq_eval.sh
 #
 # Env knobs (all optional):
 #   REFRESH=1          ignore per-run caches
@@ -32,7 +32,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 
@@ -45,7 +45,7 @@ fi
 
 export PYTHONUNBUFFERED=1
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 
 echo "=========================================="
 echo " Job:     ${SLURM_JOB_NAME} | ID: ${SLURM_JOB_ID}"
@@ -89,7 +89,7 @@ fi
 
 DATA_DIR="${CLUSTER_DATA_DIR:-/ptmp/jwuerzin/data}"
 
-"${PYTHON}" scripts/evaluate_uq.py \
+"${PYTHON}" scripts/analysis/evaluate_uq.py \
     --baseline-data-dir "${DATA_DIR}/18387358" \
     --mcmc-data-dir "${DATA_DIR}/neutralino_v4" \
     "${EXTRA_FLAGS[@]}"

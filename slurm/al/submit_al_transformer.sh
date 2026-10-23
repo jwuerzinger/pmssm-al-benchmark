@@ -8,7 +8,7 @@
 #
 # Submit from repo root (reads partition/gres from cluster.conf):
 #   source slurm/cluster.conf
-#   sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_2}" slurm/submit_al_transformer.sh
+#   sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_2}" slurm/al/submit_al_transformer.sh
 #
 # Customize via environment variables (export or --export=ALL,VAR=val):
 #   AL_N_SAMPLES          Initial dataset size           (default: 2000)
@@ -28,13 +28,13 @@
 #
 # Examples:
 #   # Standard production run (with data generation):
-#   sbatch slurm/submit_al_transformer.sh
+#   sbatch slurm/al/submit_al_transformer.sh
 #
 #   # Without data generation (ML pipeline only):
-#   sbatch --export=ALL,AL_GENERATE_DATA= slurm/submit_al_transformer.sh
+#   sbatch --export=ALL,AL_GENERATE_DATA= slurm/al/submit_al_transformer.sh
 #
 #   # Custom output directory:
-#   sbatch --export=ALL,AL_OUTPUT_DIR=my_run slurm/submit_al_transformer.sh
+#   sbatch --export=ALL,AL_OUTPUT_DIR=my_run slurm/al/submit_al_transformer.sh
 # ==============================================================================
 #SBATCH --job-name=al_transformer
 #SBATCH --nodes=1
@@ -50,7 +50,7 @@
 set -euo pipefail
 
 # ---- Resolve repo root -------------------------------------------------------
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -74,7 +74,7 @@ export PYTHONUNBUFFERED=1
 # value. Only the r-value target's step list needs this; harmless otherwise.
 export SMODELS_CACHEDIR="${SMODELS_CACHEDIR:-/ptmp/jwuerzin/cache/smodels}"
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 
 echo "=========================================="
 echo " Job:     ${SLURM_JOB_NAME} | ID: ${SLURM_JOB_ID}"
@@ -129,7 +129,7 @@ echo "[params] AL_OUTPUT_DIR=${AL_OUTPUT_DIR:-/ptmp/jwuerzin/output/active_learn
 echo "[params] AL_GENERATE_DATA=${AL_GENERATE_DATA:---generate-data}"
 
 # ---- Run active learning -----------------------------------------------------
-source "${REPO_ROOT}/slurm/resume_args.sh"
+source "${REPO_ROOT}/slurm/al/resume_args.sh"
 
 "${PYTHON}" pipelines/active_learning_transformer.py \
     --y-transform log \

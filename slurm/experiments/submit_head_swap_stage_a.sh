@@ -14,7 +14,7 @@
 #
 # Submit from repo root, e.g.:
 #   TAG=dnn_i40 AL_MODELS=dnn_expr AL_ITERATIONS=40 \
-#     sbatch --time=04:00:00 slurm/submit_head_swap_stage_a.sh
+#     sbatch --time=04:00:00 slurm/experiments/submit_head_swap_stage_a.sh
 #
 # Every parameter is an env override; the defaults run the decisive cell
 # (DNN, ExpR, iteration 40, five seeds, three inits, both heads, one-step on).
@@ -34,7 +34,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+REPO_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "${REPO_ROOT}"
 mkdir -p "${REPO_ROOT}/logs"
 
@@ -56,7 +56,7 @@ OUT_JSON="${OUT_JSON:-${OUT_DIR}/stage_a_${TAG}.json}"
 
 export PYTHONUNBUFFERED=1
 export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH="${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
+export PYTHONPATH="${REPO_ROOT}:${REPO_ROOT}/al_pmssmwithgp/model:${PYTHONPATH:-}"
 # The login/compute nodes hand out 128 OpenBLAS threads by default, which fails
 # to spawn under the process limits; the work here is torch-side anyway.
 export OPENBLAS_NUM_THREADS=1
@@ -94,7 +94,7 @@ ONE_STEP_FLAG="--one-step"
 mkdir -p "${OUT_DIR}"
 
 set -x
-"${PYTHON}" scripts/head_swap_stage_a.py \
+"${PYTHON}" scripts/experiments/head_swap_stage_a.py \
     --target "${AL_TARGET}" \
     --manifest "${AL_MANIFEST}" \
     --models "${AL_MODELS}" \

@@ -4,7 +4,7 @@
 # --n-additional-iterations flags; otherwise RESUME_ARGS is empty.
 #
 # Usage:
-#   source "${REPO_ROOT}/slurm/resume_args.sh"
+#   source "${REPO_ROOT}/slurm/al/resume_args.sh"
 #   "${PYTHON}" pipelines/active_learning_transformer.py ... ${RESUME_ARGS}
 
 RESUME_ARGS=""
