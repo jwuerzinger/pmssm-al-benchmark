@@ -405,6 +405,9 @@ def _speedup(f_al, c_al, f_ref, c_ref):
 @click.option("--include-status", default="completed,running,timeout,submitted",
               show_default=True)
 @click.option("--models", default=None, help="Comma list of manifest model names.")
+@click.option("--picks", default="", show_default=True,
+              help="Override the canonical per-model picks: model:strategy:warm[,...] "
+                   "(model named without the --model-tag suffix).")
 @click.option("--all-cells/--picks-only", default=False, show_default=True,
               help="--all-cells plots every (model, strategy, warm) present. "
                    "Needed for the probe manifests, whose cells are not the "
@@ -460,7 +463,7 @@ def _speedup(f_al, c_al, f_ref, c_ref):
 @click.option("--require-neutralino-lsp/--no-require-neutralino-lsp",
               default=False, show_default=True)
 def main(manifest, output_dir, cache_dir, baseline_data_dir, mcmc_data_dir,
-         target, model_tag, run_set_label, include_status, models, all_cells,
+         target, model_tag, run_set_label, include_status, models, picks, all_cells,
          tolerance, band_side, n_bins, min_cell, mcmc_max_samples, mcmc_total_rows,
          n_repeats, n_points, full_range, only_atlas, atlas_n_bins, atlas, min_seeds,
          anchor_min_frac,
@@ -494,8 +497,11 @@ def main(manifest, output_dir, cache_dir, baseline_data_dir, mcmc_data_dir,
     # ── the AL runs ──────────────────────────────────────────────────────────
     statuses = {s.strip() for s in include_status.split(",")}
     want = {m.strip() for m in models.split(",")} if models else None
-    cells = _discover(manifest, statuses, picks_with_tag(model_tag), all_cells,
-                      want)
+    pick_map = picks_with_tag(model_tag)
+    for item in (x.strip() for x in picks.split(",") if x.strip()):
+        m, s_, w_ = item.split(":")
+        pick_map[f"{m}_{model_tag}" if model_tag else m] = (s_, w_)
+    cells = _discover(manifest, statuses, pick_map, all_cells, want)
     if not cells:
         raise click.ClickException(f"no usable runs in {manifest}")
     # Only label a cell with its strategy when its model has more than one, so
@@ -801,8 +807,10 @@ def main(manifest, output_dir, cache_dir, baseline_data_dir, mcmc_data_dir,
                         f"{SOURCE_CURVE[bsrc]} burn-in ends at $x = {xb:.2g}$",
                         transform=ax.transAxes, ha="center", va="bottom",
                         fontsize=8, color=col_b)
-        ax.set_ylabel(f"fraction of the {SOURCE_LABEL[src]}'s {band_word} "
-                      f"support covered\n({S['n_target']} cells)")
+        # Two short lines: the long one-line form outgrew the axes height and
+        # lost its last letters once the figure was saved with a tight bbox.
+        ax.set_ylabel(f"{band_word} support covered\n"
+                      f"({SOURCE_LABEL[src]}, {S['n_target']} cells)")
         _support_axis(ax)
         ax.grid(alpha=0.3, which="both")
         ax.tick_params(axis="x", labelbottom=False)
@@ -845,7 +853,7 @@ def main(manifest, output_dir, cache_dir, baseline_data_dir, mcmc_data_dir,
             + ("_offband" if band_side == "out" else ""))
     p_png = Path(output_dir) / f"{stem}.png"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    fig.savefig(p_png, dpi=200)
+    fig.savefig(p_png, dpi=200, bbox_inches="tight")
     (Path(output_dir) / f"{stem}.json").write_text(json.dumps(out, indent=1))
     click.echo(f"[eff] wrote {p_png} and {stem}.json")
 

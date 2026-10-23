@@ -334,7 +334,11 @@ def main(cells, resume_to, seeds, per_wake, queue_cap,
             "AL_START_MISSING": "1",
         })
         env.pop("AL_DATA_DIR", None)   # never let a pool leak between targets
-        mem = "64G" if bare_model(c["model"]) == "tabpfn" else "128G"
+        # TabPFN on the exclusion target needs more than 64G: SModelS in the
+        # generation workers pushed every c200_e_tabpfn_* resume over it
+        # (43 OUT_OF_MEMORY kills at ~66.8G, 2026-09-12..10-13). Nodes are
+        # --exclusive with ~215G, so the larger request costs nothing.
+        mem = "200G" if bare_model(c["model"]) == "tabpfn" else "128G"
         cmd = ["sbatch", "--parsable", f"--job-name={name}",
                f"--partition={partition}", f"--nodes={len(seed_list)}",
                "--gres=gpu:2", f"--mem={mem}", "--exclusive", "--export=ALL",
