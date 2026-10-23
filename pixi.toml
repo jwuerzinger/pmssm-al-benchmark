@@ -12,6 +12,7 @@ al-gp = "python pipelines/active_learning_gp.py"
 al-tabpfn = "python pipelines/active_learning_tabpfn.py"
 test = "python tests/test_target_registry.py && python tests/test_model_names.py && python tests/test_models.py"
 check = "python tests/check_repo_layout.py"
+tutorial = "bash scripts/tutorial/run_tutorial.sh"
 
 # ---------- Shared (vendor-neutral) dependencies ----------
 [dependencies]

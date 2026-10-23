@@ -26,3 +26,6 @@ pipeline_analysis*/
 
 # Core dumps (a killed smoke test once left a 5.4 GB one in the repo root)
 core.*
+
+# The tutorial writes here (scripts/tutorial/run_tutorial.sh)
+/tutorial_runs/

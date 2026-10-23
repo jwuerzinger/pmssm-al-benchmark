@@ -79,6 +79,14 @@ traps.
 | `archive_runs.sh` | per-run tarballs of the irreplaceable files on non-purged storage |
 | `run_probe_quality.sh` | the quality metrics of the extended-budget and large-batch probes |
 
+## tutorial/ — the walkthrough of doc/TUTORIAL.md
+
+| script | does |
+|---|---|
+| `run_tutorial.sh` | the tutorial end to end: fetches the sample, runs two oracle-mode loops, builds their manifest, renders the figures (`pixi run tutorial`) |
+| `fetch_data.sh` | downloads and verifies the 12 MB data sample into `data/tutorial` |
+| `make_tutorial_sample.py` | writes that sample from the full pools (run once, on the cluster) |
+
 ## experiments/ — one-off studies behind supplementary sections
 
 | script | question |

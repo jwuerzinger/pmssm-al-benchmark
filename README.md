@@ -67,12 +67,14 @@ against the stub wheels in `stubs/`.
 
 Then:
 
-1. **Run3ModelGen.** The submodule is hosted on CERN's GitLab
-   (`ssh://git@gitlab.cern.ch:7999/jwuerzin/Run3ModelGen.git`) and needs a CERN
-   account to fetch. Build it following its own README (`cd Run3ModelGen &&
-   pixi run build`); the loop launches its `genModels.py` workers from that
-   environment. Nothing else in this repository is required for the analysis
-   scripts, which only read finished runs.
+1. **Submodules, both required.** `al_pmssmwithgp` holds the GP models and
+   the `entropy_batch` selection code; `Run3ModelGen` is the physics chain
+   that labels every selected point (SPheno, micrOMEGAs, SModelS) and the
+   source of all data. `Run3ModelGen` is hosted on CERN's GitLab
+   (`ssh://git@gitlab.cern.ch:7999/jwuerzin/Run3ModelGen.git`), so fetching it
+   needs a CERN account; build it following its own README
+   (`cd Run3ModelGen && pixi run build`). The loop launches its `genModels.py`
+   workers from that environment.
 2. **Cluster configuration.** `cp slurm/cluster.conf.template slurm/cluster.conf`
    and edit it: partitions, GPU gres strings, the pixi environment name, the
    data, output, analysis and archive roots, the SModelS database directory
@@ -117,6 +119,15 @@ AL_RESUME_FROM=/path/to/run AL_N_ADDITIONAL_ITERATIONS=20 \
 The smoke jobs in `slurm/smoke/` exercise each pipeline end to end on the
 development partition, including the physics chain.
 
+## Tutorial
+
+`doc/TUTORIAL.md` walks through one complete loop without the physics chain:
+a 12 MB data sample, two runs in the oracle configuration (candidates drawn
+from the reference and labelled by lookup), the run directory, a manifest and
+the comparison figure that the paper's figures are built from.
+`pixi run -e rocm tutorial` executes the same steps end to end, about twenty
+minutes on a CPU.
+
 ## The benchmark campaign
 
 ```bash
@@ -149,6 +160,7 @@ produced silently wrong numbers before.
 
 | guide | contents |
 |---|---|
+| `doc/TUTORIAL.md` | a complete loop on a small sample, no cluster needed; also runnable as `pixi run tutorial` |
 | `doc/ACQUISITION.md` | candidate generation, the tolerance cut and proximity weighting, the selection strategies, the acquisition heads |
 | `doc/TARGETS.md` | the target registry (`DMRD`, `ExpR`), the SModelS prerequisite, the two definitions of the in-band support |
 | `doc/CLI_REFERENCE.md` | the complete option list of the four pipelines, YAML sweeps, resuming |
@@ -169,7 +181,8 @@ produced silently wrong numbers before.
 - The data (pools, reference posterior, static evaluation sets, SModelS
   database) and the campaign's run directories live on the cluster's `/ptmp`
   and are not deposited with the code.
-- `Run3ModelGen` is private to CERN GitLab.
+- `Run3ModelGen` is required and hosted on CERN's GitLab; readers without a
+  CERN account cannot fetch it.
 - The scripts under `scripts/experiments/` and `slurm/experiments/` back
   one-off studies in the supplementary material and still carry the
   cluster's literal paths; the production code reads every path from
