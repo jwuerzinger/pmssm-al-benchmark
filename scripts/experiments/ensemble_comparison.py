@@ -17,9 +17,17 @@ al_m<k>_training.log, so a parser that reads only al_training.log sees one
 member and undercounts the arm by nearly K. Both are summed here.
 
 Usage:
-    python scripts/ensemble_comparison.py --iteration 10
+    python scripts/experiments/ensemble_comparison.py --iteration 10
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import json
@@ -31,10 +39,6 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
 # Run3ModelGen's validity rate, restricted to the neutralino-LSP population so
 # that hits/attempt means (in-band AND neutralino AND valid) / (ALL attempts),
@@ -129,7 +133,7 @@ def _arm_stats(run_dir: Path, iteration: int, tolerance: float, target: float,
                mu_window: tuple[float, float]):
     """Yield, cost and composition for one run at a given iteration."""
     import torch
-    from analyse_runs import load_run
+    from scripts.analysis.analyse_runs import load_run
 
     state = torch.load(run_dir / "state.pt", weights_only=False, map_location="cpu")
     n_tr = list(state.get("al_n_train") or [])
@@ -164,7 +168,7 @@ def _composition(run_dirs, iteration, tolerance, target):
     rather than re-deriving either, so these rows are directly comparable with
     the main table instead of merely looking like it.
     """
-    from composition_fractions import _al_cell_from_ntuples, sanitize_spheno_fracs
+    from scripts.analysis.composition_fractions import _al_cell_from_ntuples, sanitize_spheno_fracs
     from pmssm.visualization import LSP_TYPE_NAMES, classify_lsp_type
 
     om, fr, _n_seeds, n_files = _al_cell_from_ntuples(

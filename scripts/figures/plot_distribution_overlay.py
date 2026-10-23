@@ -23,15 +23,23 @@ side: ``--arms transformer:entropy_batch:cold:solid,transformer:cls_entropy:cold
 
 Usage
 -----
-    python scripts/plot_distribution_overlay.py \
+    python scripts/figures/plot_distribution_overlay.py \
         --picks tabpfn:tol_only_random:tabpfn \
         --output .../distribution_overlay.png --summary-json .../distribution_overlay.json
-    python scripts/plot_distribution_overlay.py --no-pool \
+    python scripts/figures/plot_distribution_overlay.py --no-pool \
         --arms transformer:entropy_batch:cold:solid,dnn:entropy_batch:cold:solid,\
 transformer:cls_entropy:cold:dashed,dnn:cls_entropy:cold:dashed \
         --output .../distribution_overlay_heads.png
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -44,15 +52,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-_HERE = Path(__file__).resolve().parent
-for p in (_HERE, _HERE.parent):
-    if str(p) not in sys.path:
-        sys.path.insert(0, str(p))
 
-import plot_hit_rate_trajectories_multiseed as H                       # noqa: E402
-from plot_hits_per_desired_heads import REG_PICKS, parse_picks           # noqa: E402
-from plot_al_input_target_diagnostics import _pooled_cell_data, _arm_color  # noqa: E402
-from analyse_runs import FREE_PARAM_NAMES, FREE_PARAM_INDICES            # noqa: E402
+import scripts.figures.plot_hit_rate_trajectories_multiseed as H                       # noqa: E402
+from scripts.figures.plot_hits_per_desired_heads import REG_PICKS, parse_picks           # noqa: E402
+from scripts.figures.plot_al_input_target_diagnostics import _pooled_cell_data, _arm_color  # noqa: E402
+from scripts.analysis.analyse_runs import FREE_PARAM_NAMES, FREE_PARAM_INDICES            # noqa: E402
 from pmssm.config import TARGET_CONFIG                                   # noqa: E402
 
 # Axis labels in the paper's notation (Table 1); masses in GeV.

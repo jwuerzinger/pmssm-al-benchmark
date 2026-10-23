@@ -34,13 +34,21 @@ Eval sets: a seeded slice of the static random pool (same seed-123 carving as
 the accuracy plots) and a seeded subsample of the emcee reference. Results
 are cached per run dir (``uq_eval_cache.json``) so re-runs are cheap.
 
-Usage (GPU node; see slurm/submit_uq_eval.sh):
-    python scripts/evaluate_uq.py --require-neutralino-lsp
+Usage (GPU node; see slurm/analysis/submit_uq_eval.sh):
+    python scripts/analysis/evaluate_uq.py --require-neutralino-lsp
 Smoke test (CPU):
-    python scripts/evaluate_uq.py --models deep_gp --seeds 1 \
+    python scripts/analysis/evaluate_uq.py --models deep_gp --seeds 1 \
         --iter-step 40 --eval-size 2000 --skip-tabpfn
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import json
@@ -51,12 +59,8 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from mcmc_diagnostics import (  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import (  # noqa: E402
     DEFAULT_AL_PICKS, MODEL_DISPLAY, picks_with_tag)
 
 COVERAGE_LEVELS = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95)
@@ -361,7 +365,7 @@ def _eval_run(run_dir: str, model_type: str, eval_sets: dict, iter_step: int,
               refresh: bool, cache_tag: str) -> dict:
     """Return {iter_no: {ds: [metrics, ...]}} for one seed run (AL role only)."""
     import torch
-    import plot_hit_rate_trajectories_multiseed as phr
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as phr
 
     run_dir_p = Path(run_dir)
     state_path = run_dir_p / "state.pt"
@@ -512,7 +516,7 @@ def _make_plots(results: dict, out_dir: Path, T_default: int) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import plot_hit_rate_trajectories_multiseed as phr
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as phr
 
     def _color(model):
         return phr.MODEL_COLORS.get(model, "gray")
@@ -624,7 +628,7 @@ def main(manifest, baseline_data_dir, mcmc_data_dir, cache_dir, output_dir,
          mc_samples, dropout, target, model_tag, device, require_neutralino_lsp,
          skip_tabpfn, refresh):
     import torch
-    import plot_hit_rate_trajectories_multiseed as phr
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as phr
     from pmssm.data import load_mcmc_data
 
     if device is None:

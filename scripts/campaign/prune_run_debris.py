@@ -16,16 +16,16 @@ filesystem with 7.9 PB free and no inode quota to stop it.
 
 Why this PACKS rather than deletes
 ----------------------------------
-``scripts/archive_runs.sh`` calls this subset "worker_*/retry_* simulation debris
+``scripts/campaign/archive_runs.sh`` calls this subset "worker_*/retry_* simulation debris
 (regenerable)" and declines to archive it. That comment is about what could in
 principle be re-simulated, NOT about whether anything reads it, and four
 analyses do (checked 2026-08-21):
 
-  scripts/composition_fractions.py       iteration_*/**/ntuple.*.root
-  scripts/best_analysis_arms.py          worker_*/scan/SModelS/*.slha.py
+  scripts/analysis/composition_fractions.py       iteration_*/**/ntuple.*.root
+  scripts/analysis/best_analysis_arms.py          worker_*/scan/SModelS/*.slha.py
                                          retry_*/worker_*/scan/SModelS/*.slha.py
-  scripts/best_analysis_from_smodels.py  the same *.slha.py, via rglob
-  scripts/mode_switch_diagnostic.py      the same *.slha.py
+  scripts/analysis/best_analysis_from_smodels.py  the same *.slha.py, via rglob
+  scripts/analysis/mode_switch_diagnostic.py      the same *.slha.py
 
 composition_fractions.py is explicit that the loss would be permanent: "the
 pooled state.pt holds only inputs and Omega, so these files are the only route
@@ -53,12 +53,20 @@ already in ``state.pt``.
 
 Usage
 -----
-    python scripts/prune_run_debris.py                       # dry run, reports only
-    python scripts/prune_run_debris.py --apply               # pack into debris.tar
-    python scripts/prune_run_debris.py --apply --mode delete \
+    python scripts/campaign/prune_run_debris.py                       # dry run, reports only
+    python scripts/campaign/prune_run_debris.py --apply               # pack into debris.tar
+    python scripts/campaign/prune_run_debris.py --apply --mode delete \
         --i-know-this-deletes-analysis-inputs                # destructive
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import glob
 import os
@@ -80,7 +88,6 @@ import click
 # that reads a run needs an untar afterwards.
 import logging
 import sys
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from pmssm.iteration_housekeeping import (            # noqa: E402
     pack_iteration_debris, summarise_smodels)
 

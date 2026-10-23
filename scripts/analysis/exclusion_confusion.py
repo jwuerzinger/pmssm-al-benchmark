@@ -37,11 +37,24 @@ be expected to fail.
 Usage:
 
     P=/ptmp/jwuerzin/pixi-envs/pytorch-conda-forge-2863954108128992291/envs/rocm/bin/python
-    $P scripts/exclusion_confusion.py \\
+    $P scripts/analysis/exclusion_confusion.py \\
         --run-dir /ptmp/jwuerzin/output/active_learning_deep_gp_expr_..._seed1_... \\
         --output-dir /ptmp/jwuerzin/analysis/joint/expr_confusion
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+# The GP models live in the al_pmssmwithgp submodule.
+_GP_PIPELINE_ROOT = _REPO_ROOT / "al_pmssmwithgp" / "model"
+if str(_GP_PIPELINE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_GP_PIPELINE_ROOT))
+
 
 import json
 import sys
@@ -51,11 +64,6 @@ import click
 import numpy as np
 import torch
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts"),
-           str(_REPO_ROOT / "al_pmssmwithgp" / "model")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
 
 def _confusion(y_true, y_pred, thr):

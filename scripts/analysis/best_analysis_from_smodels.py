@@ -53,6 +53,14 @@ the right choice for a flat scan directory.
 """
 from __future__ import annotations
 
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import argparse
 import collections
 import json
@@ -61,7 +69,6 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from pmssm.iteration_housekeeping import iter_smodels_items  # noqa: E402
 
 

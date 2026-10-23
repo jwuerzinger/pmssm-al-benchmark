@@ -16,10 +16,18 @@ hit-rate colours. Simulator (Run3ModelGen) time and evaluation/plotting
 instrumentation are excluded by construction.
 
 Usage:
-    python scripts/plot_compute_vs_dataset.py \\
+    python scripts/figures/plot_compute_vs_dataset.py \\
         --sweep-id 20260803_18 --include-status completed,running,timeout,submitted
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import re
@@ -30,16 +38,12 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from coverage_saturation import _support_axis  # noqa: E402
+from scripts.analysis.coverage_saturation import _support_axis  # noqa: E402
 from pmssm.config import TARGET_CONFIG as TARGET_CONFIG_  # noqa: E402
-from mcmc_diagnostics import (  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import (  # noqa: E402
     DEFAULT_AL_PICKS, MODEL_DISPLAY, PARAM_ORDER, picks_with_tag)
-from coverage_saturation import (  # noqa: E402
+from scripts.analysis.coverage_saturation import (  # noqa: E402
     AXES as COV_AXES,
     _cells,
     build_target,
@@ -229,7 +233,7 @@ def main(manifest, output_dir, sweep_id, include_status, picks_override, models,
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import plot_hit_rate_trajectories_multiseed as phr
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as phr
 
     statuses = {s.strip() for s in include_status.split(",")}
     picks = picks_with_tag(model_tag)
@@ -273,7 +277,7 @@ def main(manifest, output_dir, sweep_id, include_status, picks_override, models,
             coverage = False
     cov_ctxs: list[tuple] = []
     if coverage:
-        from analyse_runs import filter_run_neutralino_lsp, load_run
+        from scripts.analysis.analyse_runs import filter_run_neutralino_lsp, load_run
         ax_idx = [PARAM_ORDER.index(a) for a in COV_AXES]
         for src, src_label in cov_sources:
             rng = np.random.default_rng(20260807)

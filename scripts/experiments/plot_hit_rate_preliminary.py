@@ -33,11 +33,19 @@ listed as such rather than being silently dropped.
 
 Usage
 -----
-    python scripts/plot_hit_rate_preliminary.py \
+    python scripts/experiments/plot_hit_rate_preliminary.py \
         --headtest-glob '/ptmp/jwuerzin/output/headtest_*_20260821_*' \
         --output-dir /ptmp/jwuerzin/analysis/joint/prelim_20260821
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import glob as globmod
@@ -65,8 +73,7 @@ REF_ATTEMPT = REF_VALID * POOL_PVALID
 # accuracy_arms_static_random.png in the same document, and a second copy of the
 # palette would drift from it the first time either is touched. Colour therefore
 # encodes the ARM here too, and the panel fixes the model.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from plot_headtest_accuracy import (          # noqa: E402
+from scripts.experiments.plot_headtest_accuracy import (          # noqa: E402
     ARM_STYLE, BASELINE_STYLE, MODEL_DISPLAY, MODEL_ORDER,
     _HEADTEST_ARM, _HEADTEST_MODEL, _draw,
 )

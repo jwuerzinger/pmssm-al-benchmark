@@ -36,10 +36,18 @@ are skipped here.
 Usage
 -----
     P=/ptmp/jwuerzin/pixi-envs/pytorch-conda-forge-2863954108128992291/envs/rocm/bin/python
-    $P scripts/plot_headtest_accuracy.py \
+    $P scripts/experiments/plot_headtest_accuracy.py \
         --output-dir /ptmp/jwuerzin/analysis/joint/headtest_acc
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import glob as globmod

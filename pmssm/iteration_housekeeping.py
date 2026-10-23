@@ -21,7 +21,7 @@ already durable in ``state.pt`` before anything is touched.
 What survives, and why
 ----------------------
 ``ntuple.*.root`` stays on disk, moved into a flat ``iteration_NNN/ntuples/``.
-``scripts/composition_fractions.py`` reads these with
+``scripts/analysis/composition_fractions.py`` reads these with
 ``iteration_dir.rglob("ntuple.*.root")``, and the rename keeps that glob
 matching (all 40 workers write the identical name ``ntuple.0.0.root``, so the
 worker index has to go into the filename for a flat directory to be possible at
@@ -74,7 +74,7 @@ def _read_winner(path):
     SModelS writes these as executable Python (``smodelsOutput = {...}``), which
     is how Run3ModelGen's ntupler reads them, so exec is the format's intended
     reader rather than a shortcut. Mirrors ``read_winner`` in
-    scripts/best_analysis_from_smodels.py, minus its band cut: the cut belongs to
+    scripts/analysis/best_analysis_from_smodels.py, minus its band cut: the cut belongs to
     the offline study, so the record keeps every point and lets the study choose.
     """
     g: dict = {}
@@ -139,7 +139,7 @@ def summarise_smodels(iter_dir: Path, logger, true_value=1.0, tolerance=0.10):
         "r_expected_max": float(r.max()),
         "in_band_analysis_counts": dict(shares.most_common()),
         "definition": "max r_expected over ExptRes per point, as in "
-                      "scripts/best_analysis_from_smodels.py:read_winner; "
+                      "scripts/analysis/best_analysis_from_smodels.py:read_winner; "
                       f"'ranked' holds the top {RANK_KEEP} results per point as "
                       "[r_expected, AnalysisID, theory_pred_fb, exp_ul_fb]",
         "rank_keep": RANK_KEEP,
@@ -348,9 +348,9 @@ def load_iteration_smodels(iter_dir):
     Returns a list of records shaped like ``_read_winner``'s output, or [].
 
     Completed runs are unaffected by any of this: their ``worker_*``/``retry_*``
-    trees are intact, so ``scripts/best_analysis_arms.py``,
-    ``scripts/best_analysis_from_smodels.py`` and
-    ``scripts/mode_switch_diagnostic.py`` keep reading the loose ``*.slha.py``
+    trees are intact, so ``scripts/analysis/best_analysis_arms.py``,
+    ``scripts/analysis/best_analysis_from_smodels.py`` and
+    ``scripts/analysis/mode_switch_diagnostic.py`` keep reading the loose ``*.slha.py``
     files exactly as before. This helper is the route for runs whose workspaces
     have been packed: prefer the loose files where they exist, fall back to the
     JSON where they do not, so one call serves both.

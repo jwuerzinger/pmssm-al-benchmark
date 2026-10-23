@@ -39,10 +39,18 @@ low, the features have collapsed and no head on top can recover it, which points
 at spectral normalisation / SNGP instead (Liu et al. 2020).
 
 Usage:
-    python scripts/laplace_uq_probe.py --models transformer,dnn \\
+    python scripts/experiments/laplace_uq_probe.py --models transformer,dnn \\
         --output-dir /ptmp/jwuerzin/analysis/all_runs
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import json
@@ -53,10 +61,6 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
 # Prior precisions to scan. Must reach far enough down to expose the
 # data-dominated limit: at lam -> 0 sigma becomes the Mahalanobis norm of phi
@@ -72,7 +76,7 @@ _DRAW_SEED = 20260810
 
 def _resolve_picks(manifest: Path, models: list[str]) -> dict:
     """{model: [run_dir, ...]} for each model's best (strategy, warm) cell."""
-    from mcmc_diagnostics import DEFAULT_AL_PICKS
+    from scripts.analysis.mcmc_diagnostics import DEFAULT_AL_PICKS
     rows = list(csv.DictReader(manifest.open()))
     out = {}
     for model in models:
@@ -206,13 +210,10 @@ def main(manifest, models, output_dir, baseline_data_dir, mcmc_data_dir,
          eval_size, mc_samples, knn_k, dropout, max_seeds, device, target):
     import torch
     import importlib.util
-    import plot_hit_rate_trajectories_multiseed as phr
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as phr
     from pmssm.data import compute_stats, load_mcmc_data, transform_y
 
-    spec = importlib.util.spec_from_file_location(
-        "euq", str(_REPO_ROOT / "scripts" / "evaluate_uq.py"))
-    euq = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(euq)
+    from scripts.analysis import evaluate_uq as euq
 
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

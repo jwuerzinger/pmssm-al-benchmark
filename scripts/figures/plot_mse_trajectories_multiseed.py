@@ -23,12 +23,20 @@ applied here (unlike the hit-rate plots). No in-figure titles beyond the
 panel labels (paper figures carry captions instead).
 
 Usage (new-generation preview):
-    python scripts/plot_mse_trajectories_multiseed.py \\
+    python scripts/figures/plot_mse_trajectories_multiseed.py \\
         --sweep-id 20260803_180047 \\
         --include-status completed,running,timeout,submitted \\
         --output-dir /ptmp/jwuerzin/analysis/all_runs/new_sweep_preview
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import json
@@ -38,12 +46,8 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from mcmc_diagnostics import DEFAULT_AL_PICKS, MODEL_DISPLAY, picks_with_tag  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import DEFAULT_AL_PICKS, MODEL_DISPLAY, picks_with_tag  # noqa: E402
 from pmssm.heads import head_for_run  # noqa: E402
 
 DATASET_KEYS = {
@@ -127,7 +131,7 @@ def main(manifest, output_dir, sweep_id, include_status, models, min_seeds, logy
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import plot_hit_rate_trajectories_multiseed as phr
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as phr
 
     statuses = {s.strip() for s in include_status.split(",")}
     picks = picks_with_tag(model_tag)

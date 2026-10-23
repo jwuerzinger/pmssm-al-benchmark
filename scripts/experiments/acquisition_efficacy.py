@@ -16,16 +16,23 @@ its points carry true labels, so the model's own cut and ranking can be scored.
 Run for each model's canonical cell (transformer entropy_batch/cold,
 deep_gp entropy_batch/warm) so the two are compared at their best.
 """
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import sys
 from pathlib import Path
 
 import numpy as np
 import torch
 
-sys.path.insert(0, "/viper/u2/jwuerzin/pMSSM-trafo")
-sys.path.insert(0, "/viper/u2/jwuerzin/pMSSM-trafo/scripts")
 
-import plot_hit_rate_trajectories_multiseed as phr            # noqa: E402
+import scripts.figures.plot_hit_rate_trajectories_multiseed as phr            # noqa: E402
 from pmssm.data import build_norm_tensors, compute_stats      # noqa: E402
 from pmssm.uncertainty import (                               # noqa: E402
     compute_uncertainty_gp, compute_uncertainty_mc_dropout)

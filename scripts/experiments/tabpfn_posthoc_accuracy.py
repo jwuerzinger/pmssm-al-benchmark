@@ -35,12 +35,20 @@ that carries the reference's current row count, so a grown reference can never
 hit a stale entry.
 
 Usage (GPU node; TabPFN needs a GPU and TABPFN_TOKEN):
-    python scripts/tabpfn_posthoc_accuracy.py --output /ptmp/.../tabpfn_acc.json
+    python scripts/experiments/tabpfn_posthoc_accuracy.py --output /ptmp/.../tabpfn_acc.json
 Smoke test:
-    python scripts/tabpfn_posthoc_accuracy.py --seeds 1 --mcmc-max-samples 20000 \
+    python scripts/experiments/tabpfn_posthoc_accuracy.py --seeds 1 --mcmc-max-samples 20000 \
         --datasets mcmc --roles al
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import glob
@@ -52,10 +60,6 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
 CACHE_NAME = "tabpfn_posthoc_accuracy.json"
 DATASETS = ("mcmc", "static_random")
@@ -121,8 +125,8 @@ def _eval_run(run_dir: str, seed: int, eval_sets: dict, roles: tuple,
               X_full, Y_full, refresh: bool, cache_tag: str) -> dict:
     """{iter_no: {role: {ds: accuracy}}} for one seed run."""
     import torch
-    import evaluate_uq as euq
-    import plot_hit_rate_trajectories_multiseed as phr
+    import scripts.analysis.evaluate_uq as euq
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as phr
 
     run_dir_p = Path(run_dir)
     state_path = run_dir_p / "state.pt"
@@ -264,7 +268,7 @@ def main(manifest, model, strategy, warm_start, include_status, seeds, iters,
          static_eval_size, cache_dir, target, require_neutralino_lsp, device,
          output, refresh, build_eval_only):
     import torch
-    import plot_hit_rate_trajectories_multiseed as phr
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as phr
     from pmssm import TARGET_CONFIG
     from pmssm.data import transform_y
 

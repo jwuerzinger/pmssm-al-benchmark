@@ -14,12 +14,20 @@ plus ``corner_mcmc.png`` for the MCMC reference set, drawn with the exact
 same styling so the panels are directly comparable in the paper.
 
 Usage:
-    python scripts/plot_al_input_target_diagnostics.py \\
+    python scripts/figures/plot_al_input_target_diagnostics.py \\
         --manifest /ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv \\
         --output-dir /ptmp/jwuerzin/analysis/all_runs/al_diag/ \\
         --require-neutralino-lsp
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import os
 import sys
@@ -31,19 +39,15 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
 from pmssm.config import TARGET_CONFIG  # noqa: E402
-from analyse_runs import (  # noqa: E402
+from scripts.analysis.analyse_runs import (  # noqa: E402
     FREE_PARAM_INDICES,
     FREE_PARAM_NAMES,
     filter_run_neutralino_lsp,
     load_run,
 )
-from mcmc_diagnostics import (  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import (  # noqa: E402
     DEFAULT_AL_PICKS,
     _picks_from_manifest,
     picks_with_tag,
@@ -221,7 +225,7 @@ def _arm_color(label: str, arms=None):
             return "black"
     if label in OVERLAY_COLORS:
         return OVERLAY_COLORS[label]
-    import plot_hit_rate_trajectories_multiseed as _phr  # noqa: PLC0415
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as _phr  # noqa: PLC0415
     return _phr.MODEL_COLORS.get(label, "gray")
 
 
@@ -422,7 +426,7 @@ def main(manifest, output_dir, models, mcmc_data_dir, baseline_data_dir, target,
 
     # ── Random-scan baseline corner ─────────────────────────────────────────
     if baseline_data_dir:
-        import plot_hit_rate_trajectories_multiseed as phr  # noqa: PLC0415
+        import scripts.figures.plot_hit_rate_trajectories_multiseed as phr  # noqa: PLC0415
         click.echo(f"[al-diag] loading random pool from {baseline_data_dir} ...")
         # target, NOT "DMRD": with the key hardcoded this loaded MO_Omega from
         # whatever pool was given, so the in-band overlay below cut on relic

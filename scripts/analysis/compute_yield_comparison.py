@@ -21,11 +21,19 @@ MCMC repeats carry posterior weight and are the correct output for Bayesian
 inference, which the coverage-driven AL scan does not address.
 
 Usage:
-    python scripts/compute_yield_comparison.py \\
+    python scripts/analysis/compute_yield_comparison.py \\
         --output-dir /ptmp/jwuerzin/analysis/all_runs/ \\
         --require-neutralino-lsp
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import glob
@@ -37,18 +45,14 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from analyse_runs import (  # noqa: E402
+from scripts.analysis.analyse_runs import (  # noqa: E402
     compute_hit_rate_trajectory,
     filter_run_neutralino_lsp,
     load_run,
 )
-from mcmc_diagnostics import DEFAULT_AL_PICKS, picks_with_tag  # noqa: E402
-import plot_hit_rate_trajectories_multiseed as phr  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import DEFAULT_AL_PICKS, picks_with_tag  # noqa: E402
+import scripts.figures.plot_hit_rate_trajectories_multiseed as phr  # noqa: E402
 
 _DIAG_ITER_RE = re.compile(r"iterations=(\d+)\s+nwalkers=(\d+)")
 

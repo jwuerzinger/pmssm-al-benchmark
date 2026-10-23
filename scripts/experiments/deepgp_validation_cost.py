@@ -25,11 +25,24 @@ aborts the process rather than raising: running all phases together identifies
 the size that fails but not the operation that fails.
 
 Usage:
-    python scripts/deepgp_validation_cost.py --mode time --n-train 12581
-    python scripts/deepgp_validation_cost.py --mode isolate \\
+    python scripts/experiments/deepgp_validation_cost.py --mode time --n-train 12581
+    python scripts/experiments/deepgp_validation_cost.py --mode isolate \\
         --sizes 40000,45000,50000,55000,60000
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+# The GP models live in the al_pmssmwithgp submodule.
+_GP_PIPELINE_ROOT = _REPO_ROOT / "al_pmssmwithgp" / "model"
+if str(_GP_PIPELINE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_GP_PIPELINE_ROOT))
+
 
 import json
 import os
@@ -40,11 +53,6 @@ from pathlib import Path
 
 import click
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts"),
-           str(_REPO_ROOT / "al_pmssmwithgp" / "model")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
 
 def _build(n_train: int, n_val: int, device: str, jitter: float,

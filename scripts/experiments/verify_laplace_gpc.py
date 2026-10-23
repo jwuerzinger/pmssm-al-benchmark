@@ -25,10 +25,23 @@ grows n by an order of magnitude over 40 iterations.
 
 Usage
 -----
-    python scripts/verify_laplace_gpc.py                 # CPU, n=300
-    python scripts/verify_laplace_gpc.py --n 1600 --device cuda --time-scaling
+    python scripts/experiments/verify_laplace_gpc.py                 # CPU, n=300
+    python scripts/experiments/verify_laplace_gpc.py --n 1600 --device cuda --time-scaling
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+# The GP models live in the al_pmssmwithgp submodule.
+_GP_PIPELINE_ROOT = _REPO_ROOT / "al_pmssmwithgp" / "model"
+if str(_GP_PIPELINE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_GP_PIPELINE_ROOT))
+
 
 import sys
 import time
@@ -37,8 +50,6 @@ from pathlib import Path
 import click
 import torch
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "al_pmssmwithgp" / "model"))
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from gp_pipeline.models.laplace_gpc import LaplaceGPC, _probit_derivatives  # noqa: E402
 from pmssm.heads import get_head                                            # noqa: E402

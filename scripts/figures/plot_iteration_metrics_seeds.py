@@ -6,7 +6,7 @@ a 2×3 figure showing seed-mean ± SEM bands. Layout mirrors the per-run plot
 (pmssm/visualization.py:plot_iteration_metrics) so the two read consistently.
 
 Usage:
-    PYTHONPATH=. .pixi/envs/rocm/bin/python scripts/plot_iteration_metrics_seeds.py \\
+    PYTHONPATH=. .pixi/envs/rocm/bin/python scripts/figures/plot_iteration_metrics_seeds.py \\
         --model exact_gp --strategy entropy_batch --warm warm \\
         --output-dir /ptmp/jwuerzin/analysis/all_runs/iter_metrics_seeds
 
@@ -18,6 +18,14 @@ No rolling mean is applied: the seed average already smooths out
 per-iteration noise.
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import argparse
 import csv

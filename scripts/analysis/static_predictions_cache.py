@@ -23,9 +23,17 @@ it implies, so the cache can be checked against ``accuracy_trajectory.json``.
 
 Usage (GPU node)
 ----------------
-    python scripts/static_predictions_cache.py --target DMRD --model transformer
+    python scripts/analysis/static_predictions_cache.py --target DMRD --model transformer
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import sys
 import time
@@ -36,13 +44,9 @@ import numpy as np
 import pandas as pd
 import torch
 
-_HERE = Path(__file__).resolve().parent
-for p in (_HERE, _HERE.parent):
-    if str(p) not in sys.path:
-        sys.path.insert(0, str(p))
 
-import plot_hit_rate_trajectories_multiseed as H                  # noqa: E402
-from plot_best_config import TARGETS                              # noqa: E402
+import scripts.figures.plot_hit_rate_trajectories_multiseed as H                  # noqa: E402
+from scripts.figures.plot_best_config import TARGETS                              # noqa: E402
 from pmssm.data import TARGET_CONFIG, transform_y                 # noqa: E402
 
 A = "/ptmp/jwuerzin/analysis"
@@ -59,7 +63,7 @@ def _predict(model_type, role, iter_dir, sets, run_kwargs, target, X_eval, devic
     X_tr, Y_tr = sets[role]["train"]
     X_va, Y_va = sets[role]["val"]
     if model_type == "tabpfn":
-        from evaluate_uq import _predict_tabpfn  # noqa: PLC0415
+        from scripts.analysis.evaluate_uq import _predict_tabpfn  # noqa: PLC0415
         return np.asarray(_predict_tabpfn(X_tr, Y_tr, X_eval, device, target)["mean"],
                           dtype=np.float32)
     model = H._load_iter_model(model_type, role, iter_dir, X_tr, Y_tr, X_va, Y_va,

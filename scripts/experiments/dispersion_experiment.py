@@ -39,10 +39,23 @@ random_ind1024    `random` with 1024 inducing points (capacity control)
 
 Usage
 -----
-    python scripts/dispersion_experiment.py --arm stratified --seed 1
-    python scripts/dispersion_experiment.py --arm al --seed 1 --smoke
+    python scripts/experiments/dispersion_experiment.py --arm stratified --seed 1
+    python scripts/experiments/dispersion_experiment.py --arm al --seed 1 --smoke
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+# The GP models live in the al_pmssmwithgp submodule.
+_GP_PIPELINE_ROOT = _REPO_ROOT / "al_pmssmwithgp" / "model"
+if str(_GP_PIPELINE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_GP_PIPELINE_ROOT))
+
 
 import json
 import sys
@@ -53,10 +66,6 @@ import click
 import numpy as np
 import torch
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "al_pmssmwithgp" / "model")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
 from pmssm.data import (  # noqa: E402
     build_norm_tensors,

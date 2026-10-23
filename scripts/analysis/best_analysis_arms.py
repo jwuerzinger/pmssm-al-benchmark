@@ -20,6 +20,15 @@ of analyses exp(H) (H the Shannon entropy, so a flat distribution over k
 analyses gives k and total concentration gives 1), the top analysis' share, and
 the same by TxNames topology.
 """
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import collections
 import csv
 import json
@@ -29,7 +38,6 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from pmssm.iteration_housekeeping import iter_smodels_items  # noqa: E402
 
 TOL = 0.10

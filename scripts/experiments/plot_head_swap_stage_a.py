@@ -1,7 +1,7 @@
 """Summarise the Stage A head-swap results: acquisition precision per selector,
 and where each selector's picks actually sit.
 
-Reads the JSONs written by ``scripts/head_swap_stage_a.py`` (one per submitted
+Reads the JSONs written by ``scripts/experiments/head_swap_stage_a.py`` (one per submitted
 cell) and aggregates over seeds x initialisations. Two panels, because the
 question has two halves that the single precision number conflates:
 
@@ -19,11 +19,19 @@ repaint the others. No in-figure titles: the caption carries the description.
 
 Usage
 -----
-    python scripts/plot_head_swap_stage_a.py \
+    python scripts/experiments/plot_head_swap_stage_a.py \
         --inputs '/ptmp/jwuerzin/analysis/head_swap/stage_a_*.json' \
         --output-dir /ptmp/jwuerzin/analysis/head_swap
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import glob
 import json

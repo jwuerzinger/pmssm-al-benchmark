@@ -15,10 +15,18 @@ to the shorter of the two, i.e. back to 40 iterations, silently hiding the very
 extension these probes exist to measure.
 
 Usage:
-    python scripts/build_probe_manifest.py --pattern '*ext160*' \\
+    python scripts/campaign/build_probe_manifest.py --pattern '*ext160*' \\
         --out /ptmp/jwuerzin/analysis/probe_extended/manifest.csv
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 from pathlib import Path

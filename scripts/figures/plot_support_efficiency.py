@@ -59,26 +59,34 @@ sets of one target then share one build.
 Usage — the three run sets of the relic-density branch:
 
     P=./.pixi/envs/rocm/bin/python
-    $P scripts/plot_support_efficiency.py \\
+    $P scripts/figures/plot_support_efficiency.py \\
         --manifest /ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv \\
         --output-dir /ptmp/jwuerzin/analysis/all_runs --run-set-label 40iter
-    $P scripts/plot_support_efficiency.py \\
+    $P scripts/figures/plot_support_efficiency.py \\
         --manifest /ptmp/jwuerzin/analysis/probe_extended/manifest.csv \\
         --output-dir /ptmp/jwuerzin/analysis/probe_extended \\
         --run-set-label ext160 --all-cells
-    $P scripts/plot_support_efficiency.py \\
+    $P scripts/figures/plot_support_efficiency.py \\
         --manifest /ptmp/jwuerzin/analysis/probe_20k/manifest.csv \\
         --output-dir /ptmp/jwuerzin/analysis/probe_20k \\
         --run-set-label probe20k --all-cells
 
 and the exclusion-boundary branch, which has no posterior:
 
-    $P scripts/plot_support_efficiency.py --target ExpR --model-tag expr \\
+    $P scripts/figures/plot_support_efficiency.py --target ExpR --model-tag expr \\
         --manifest /ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv \\
         --baseline-data-dir /ptmp/jwuerzin/data/260804 \\
         --output-dir /ptmp/jwuerzin/analysis/expr_runs --run-set-label 40iter
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import json
@@ -88,14 +96,10 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from coverage_saturation import (  # noqa: E402
+from scripts.analysis.coverage_saturation import (  # noqa: E402
     AXES, RNG_SEED, _cells, _support_axis, build_target, coverage_of)
-from mcmc_diagnostics import PARAM_ORDER, picks_with_tag  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import PARAM_ORDER, picks_with_tag  # noqa: E402
 from pmssm.config import TARGET_CONFIG as TARGET_CONFIG_  # noqa: E402
 from pmssm.data import target_validity_mask as target_validity_mask_  # noqa: E402
 
@@ -471,7 +475,7 @@ def main(manifest, output_dir, cache_dir, baseline_data_dir, mcmc_data_dir,
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import plot_hit_rate_trajectories_multiseed as phr
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as phr
     from pmssm.config import TARGET_CONFIG
 
     true_val = float(TARGET_CONFIG[target]["true_value"])

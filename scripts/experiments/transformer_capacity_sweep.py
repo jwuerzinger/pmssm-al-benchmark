@@ -19,11 +19,19 @@ exonerated and the deficit belongs to the covariance structure, which is what a
 last-layer Laplace or GP head would address.
 
 Usage:
-    python scripts/transformer_capacity_sweep.py \\
+    python scripts/experiments/transformer_capacity_sweep.py \\
         --run-dir /ptmp/jwuerzin/output/active_learning_transformer_entropy_batch_cold_seed1_20260803_180047 \\
         --output-dir /ptmp/jwuerzin/analysis/all_runs
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -32,10 +40,6 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
 # (tag, d_model, nhead, num_layers, dim_feedforward); the last reproduces the
 # production model exactly (803,330 parameters) and is the control.
@@ -66,15 +70,12 @@ def main(run_dir, output_dir, mcmc_data_dir, eval_size, mc_samples, epochs,
          patience, dropout, device, seed):
     import torch
     import multiprocessing as mp
-    from analyse_runs import load_run
+    from scripts.analysis.analyse_runs import load_run
     from pmssm.data import load_mcmc_data, transform_y
     from pmssm.models.transformer import PMSSMTransformerTabular
     from pmssm.training import train_model_worker
     import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "euq", str(_REPO_ROOT / "scripts" / "evaluate_uq.py"))
-    euq = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(euq)
+    from scripts.analysis import evaluate_uq as euq
 
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

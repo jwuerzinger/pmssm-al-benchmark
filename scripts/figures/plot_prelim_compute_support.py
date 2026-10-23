@@ -25,13 +25,21 @@ itself.
 
 Usage
 -----
-    python scripts/plot_prelim_compute_support.py \
+    python scripts/figures/plot_prelim_compute_support.py \
         --manifest /ptmp/jwuerzin/analysis/joint/manifest_dmrd.csv \
         --arm-manifest /ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv \
         --arm-sweep-id c200_... --pool-dir /ptmp/jwuerzin/data/18387358 \
         --target DMRD --true-value 0.12 --output-dir <dir>
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import sys
@@ -44,21 +52,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
-_HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(_HERE))
-sys.path.insert(0, str(_HERE.parent))
 
-from coverage_saturation import _cells                              # noqa: E402
-from plot_support_efficiency import AXES, _al_sequence, _band_mask  # noqa: E402
-from plot_prelim_support import _support_from_cache                 # noqa: E402
-from plot_compute_vs_dataset import (                               # noqa: E402
+from scripts.analysis.coverage_saturation import _cells                              # noqa: E402
+from scripts.figures.plot_support_efficiency import AXES, _al_sequence, _band_mask  # noqa: E402
+from scripts.figures.plot_prelim_support import _support_from_cache                 # noqa: E402
+from scripts.figures.plot_compute_vs_dataset import (                               # noqa: E402
     _iter_dir_chain, _selection_seconds, _tabpfn_fit_eval_seconds,
     _train_seconds,
 )
-from plot_prelim_paper_style import (                               # noqa: E402
+from scripts.figures.plot_prelim_paper_style import (                               # noqa: E402
     ARM_ORDER, ARM_STYLE, MODEL_ORDER, _PROD_MODEL, iter_arm_rows,
 )
-from plot_hit_rate_trajectories_multiseed import MODEL_DISPLAY      # noqa: E402
+from scripts.figures.plot_hit_rate_trajectories_multiseed import MODEL_DISPLAY      # noqa: E402
 from pmssm.config import PARAM_ORDER                                # noqa: E402
 
 

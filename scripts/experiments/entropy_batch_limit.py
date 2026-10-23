@@ -17,12 +17,20 @@ recoverable OOM behind a hard abort.
 
 Usage:
     # one size, in isolation (what the sweep driver calls)
-    python scripts/entropy_batch_limit.py --only 20000 --device cuda:0
+    python scripts/experiments/entropy_batch_limit.py --only 20000 --device cuda:0
 
     # print the sweep plan
-    python scripts/entropy_batch_limit.py --sizes 500,1000,2000,5000,10000,20000
+    python scripts/experiments/entropy_batch_limit.py --sizes 500,1000,2000,5000,10000,20000
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -33,10 +41,6 @@ import click
 import numpy as np
 import torch
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
 from pmssm.selection import select_entropy_batch_mc                # noqa: E402
 

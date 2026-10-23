@@ -29,12 +29,20 @@ names the model, and the random scan's own prefix curve is the dotted reference.
 
 Usage
 -----
-    python scripts/plot_prelim_support.py \
+    python scripts/figures/plot_prelim_support.py \
         --headtest-glob '/ptmp/jwuerzin/output/headtest_*_20260821_*' \
         --exclude-runs '_111422' \
         --output-dir /ptmp/jwuerzin/analysis/joint/prelim_20260821
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import glob as globmod
@@ -49,20 +57,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
-_HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(_HERE))
-sys.path.insert(0, str(_HERE.parent))
 
-from coverage_saturation import _cells, coverage_of                 # noqa: E402
-from plot_support_efficiency import (                               # noqa: E402
+from scripts.analysis.coverage_saturation import _cells, coverage_of                 # noqa: E402
+from scripts.figures.plot_support_efficiency import (                               # noqa: E402
     AXES, _al_curve, _al_sequence, _band_mask, _ref_curve, _support,
 )
 from pmssm.config import PARAM_ORDER                                # noqa: E402
-from plot_prelim_paper_style import (                               # noqa: E402
+from scripts.figures.plot_prelim_paper_style import (                               # noqa: E402
     ARM_ORDER, ARM_STYLE, BASELINE_STYLE, MODEL_ORDER,
     _HEADTEST_ARM, _HEADTEST_MODEL, _PROD_MODEL, iter_arm_rows,
 )
-from plot_hit_rate_trajectories_multiseed import MODEL_DISPLAY      # noqa: E402
+from scripts.figures.plot_hit_rate_trajectories_multiseed import MODEL_DISPLAY      # noqa: E402
 
 
 def _support_from_cache(pool_dir, target, cache_dir, tol, n_bins, min_cell,
@@ -82,7 +87,7 @@ def _support_from_cache(pool_dir, target, cache_dir, tol, n_bins, min_cell,
     do. The cell count is asserted against the published value so a silent
     divergence in the support cannot pass.
     """
-    from plot_hit_rate_trajectories_multiseed import _load_xy_full
+    from scripts.figures.plot_hit_rate_trajectories_multiseed import _load_xy_full
     ax = list(AXES)
     X_full, Y_full = _load_xy_full(pool_dir, target, Path(cache_dir))
     idx = [PARAM_ORDER.index(a) for a in ax]

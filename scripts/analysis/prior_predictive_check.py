@@ -27,10 +27,18 @@ Outputs ``prior_predictive_check.json`` and
 ``prior_predictive_marginals.png`` in --output-dir.
 
 Usage:
-    python scripts/prior_predictive_check.py
+    python scripts/analysis/prior_predictive_check.py
 (first run reads the full pool from ROOT, ~minutes; cached afterwards)
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -39,12 +47,8 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from analyse_runs import FREE_PARAM_INDICES, FREE_PARAM_NAMES  # noqa: E402
+from scripts.analysis.analyse_runs import FREE_PARAM_INDICES, FREE_PARAM_NAMES  # noqa: E402
 
 M1_IDX = FREE_PARAM_INDICES[FREE_PARAM_NAMES.index("M_1")]
 

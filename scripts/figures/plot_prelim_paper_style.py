@@ -32,11 +32,19 @@ the absence of a band is itself the honest signal that they are one run.
 
 Usage
 -----
-    python scripts/plot_prelim_paper_style.py \
+    python scripts/figures/plot_prelim_paper_style.py \
         --headtest-glob '/ptmp/jwuerzin/output/headtest_*_20260821_*' \
         --output-dir /ptmp/jwuerzin/analysis/joint/prelim_20260821
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import glob as globmod
@@ -53,15 +61,12 @@ import numpy as np
 import torch
 from matplotlib.lines import Line2D
 
-_HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(_HERE))
-sys.path.insert(0, str(_HERE.parent))
 
-from plot_hit_rate_trajectories_multiseed import (      # noqa: E402
+from scripts.figures.plot_hit_rate_trajectories_multiseed import (      # noqa: E402
     MODEL_COLORS, MODEL_DISPLAY, _draw_curve, _hits_per_desired_trajectory,
     _load_run,
 )
-from analyse_runs import compute_hit_rate_trajectory     # noqa: E402
+from scripts.analysis.analyse_runs import compute_hit_rate_trajectory     # noqa: E402
 
 # Panel order: neural surrogates first, since they are the only ones carrying a
 # classification head, then the GPs.

@@ -15,9 +15,17 @@ against the dataset size |L|, each curve ending where its first seed ends.
 
 Usage
 -----
-    python scripts/plot_weighted_accuracy.py --output .../accuracy_weighted.png
+    python scripts/figures/plot_weighted_accuracy.py --output .../accuracy_weighted.png
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -30,14 +38,10 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import numpy as np
 
-_HERE = Path(__file__).resolve().parent
-for p in (_HERE, _HERE.parent):
-    if str(p) not in sys.path:
-        sys.path.insert(0, str(p))
 
-import plot_hit_rate_trajectories_multiseed as H                  # noqa: E402
-from plot_best_config import TARGETS, MODEL_ORDER                 # noqa: E402
-from static_predictions_cache import OUT                          # noqa: E402
+import scripts.figures.plot_hit_rate_trajectories_multiseed as H                  # noqa: E402
+from scripts.figures.plot_best_config import TARGETS, MODEL_ORDER                 # noqa: E402
+from scripts.analysis.static_predictions_cache import OUT                          # noqa: E402
 from pmssm.data import TARGET_CONFIG                              # noqa: E402
 
 LABEL = {"DMRD": "(a) Relic density", "ExpR": "(b) LHC exclusion"}

@@ -23,8 +23,17 @@ concatenated: concatenation would describe running one ensemble to completion
 before starting the next.
 
 Needs h5py, which lives in the Run3ModelGen environment, not the torch one:
-    Run3ModelGen/.pixi/envs/default/bin/python scripts/extract_emcee_chain_h5.py
+    Run3ModelGen/.pixi/envs/default/bin/python scripts/analysis/extract_emcee_chain_h5.py
 """
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import glob
 import sys
 

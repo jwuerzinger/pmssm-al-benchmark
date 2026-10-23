@@ -19,6 +19,14 @@ Lower MMD² ⇒ training set looks more like the MCMC posterior.
 """
 from __future__ import annotations
 
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import json
 import sys
 from pathlib import Path
@@ -28,11 +36,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
-from analyse_runs import (  # noqa: E402
+from scripts.analysis.analyse_runs import (  # noqa: E402
     _mmd_gaussian,
     load_mcmc_numpy,
     load_run,

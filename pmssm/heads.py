@@ -19,7 +19,7 @@ decision point (raw output > 0), because a logit is positive exactly when
 p > 0.5.  That is deliberate: it means the existing per-iteration diagnostics
 that threshold the model's transformed-space output keep working on a
 classification-head checkpoint with no changes at all, in particular
-``_classification_accuracy`` in ``scripts/plot_hit_rate_trajectories_multiseed.py``
+``_classification_accuracy`` in ``scripts/figures/plot_hit_rate_trajectories_multiseed.py``
 and everything built on it (accuracy trajectories, hit/no-hit plots, the
 confusion analysis).  Uncertainty diagnostics that only *rank* sigma, such as
 the Spearman rho(sigma, |err|) column of the UQ table and the AUSE curve, also

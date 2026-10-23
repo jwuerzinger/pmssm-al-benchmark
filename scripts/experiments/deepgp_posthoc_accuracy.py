@@ -28,11 +28,19 @@ a regression model whose cached accuracy was never affected.
 
 Usage (GPU node)
 ----------------
-    python scripts/deepgp_posthoc_accuracy.py \
+    python scripts/experiments/deepgp_posthoc_accuracy.py \
         --runs '/ptmp/jwuerzin/output/headtest_deepgp_*_seed1_20260821_*' \
         --data-dir /ptmp/jwuerzin/data/260804 --target ExpR
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import glob as globmod
 import json
@@ -44,11 +52,8 @@ import click
 import numpy as np
 import torch
 
-_HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(_HERE))
-sys.path.insert(0, str(_HERE.parent))
 
-from plot_hit_rate_trajectories_multiseed import (      # noqa: E402
+from scripts.figures.plot_hit_rate_trajectories_multiseed import (      # noqa: E402
     _classification_accuracy, _load_iter_model, _load_xy_full,
     _parse_run_kwargs_from_log, _static_random_indices,
 )
@@ -168,7 +173,7 @@ def main(runs, data_dir, target, pool_cache_dir, static_eval_size,
         series = posthoc.setdefault("static_random", {})
         series.update({str(it): float(acc) for it, acc in results.items()})
         posthoc["meta"] = {
-            "source": "scripts/deepgp_posthoc_accuracy.py",
+            "source": "scripts/experiments/deepgp_posthoc_accuracy.py",
             "why": "run-time accuracy for a verdict head thresholded a "
                    "probability against the physical target, giving the "
                    "positive-class fraction instead of an accuracy",

@@ -16,10 +16,18 @@ carries rows from earlier sweeps whose run directories are partly archived, and
 pooling those would mix acquisition histories from different code versions.
 
 Usage:
-    python scripts/plot_probe_input_overlays.py            # both probes
-    python scripts/plot_probe_input_overlays.py --probe extended
+    python scripts/experiments/plot_probe_input_overlays.py            # both probes
+    python scripts/experiments/plot_probe_input_overlays.py --probe extended
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import sys
@@ -29,20 +37,16 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from analyse_runs import (  # noqa: E402
+from scripts.analysis.analyse_runs import (  # noqa: E402
     FREE_PARAM_INDICES,
     FREE_PARAM_NAMES,
 )
-from plot_hit_rate_trajectories_multiseed import (            # noqa: E402
+from scripts.figures.plot_hit_rate_trajectories_multiseed import (            # noqa: E402
     MODEL_COLORS,
     MODEL_DISPLAY,
 )
-from plot_laplace_input_overlays import (                     # noqa: E402
+from scripts.experiments.plot_laplace_input_overlays import (                     # noqa: E402
     OMEGA_LABEL,
     TRUE_VALUE,
     _pool_cell,

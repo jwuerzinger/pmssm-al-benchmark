@@ -60,6 +60,14 @@ Usage
 
 from __future__ import annotations
 
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import argparse
 import re
 import sys
@@ -79,8 +87,6 @@ from sklearn.cluster import KMeans
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import pairwise_distances
 
-# ── project imports ─────────────────────────────────────────────────────────────
-sys.path.insert(0, str(Path(__file__).parent))
 from pmssm.config import PARAM_ORDER, PARAM_RANGES, TARGET_CONFIG
 from pmssm.resume import load_state
 

@@ -15,9 +15,17 @@ central |M1| enhancement of the input marginals (fig:input-overlay):
                    saturates; prior-followers camp there from iteration 1).
 
 Usage:
-    python scripts/funnel_analysis.py --require-neutralino-lsp
+    python scripts/analysis/funnel_analysis.py --require-neutralino-lsp
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import glob
@@ -28,13 +36,9 @@ import click
 import numpy as np
 
 import sys
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from analyse_runs import PARAM_ORDER  # noqa: E402
-from mcmc_diagnostics import DEFAULT_AL_PICKS, picks_with_tag  # noqa: E402
+from scripts.analysis.analyse_runs import PARAM_ORDER  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import DEFAULT_AL_PICKS, picks_with_tag  # noqa: E402
 
 M1_COL = PARAM_ORDER.index("IN_M_1")
 
@@ -66,8 +70,8 @@ def main(manifest, baseline_data_dir, mcmc_data_dir, cache_dir, output_dir, targ
          m1_cut, tolerance, n_mchi_files, require_neutralino_lsp):
     import torch
     import uproot
-    import plot_hit_rate_trajectories_multiseed as phr
-    from analyse_runs import filter_run_neutralino_lsp, load_run
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as phr
+    from scripts.analysis.analyse_runs import filter_run_neutralino_lsp, load_run
 
     # This analysis is relic-density-specific by construction, not merely by
     # default: it reads MO_Omega directly and its whole subject is the funnel

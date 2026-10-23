@@ -4,7 +4,7 @@ Each AL iteration computes binary classification accuracy at the constraint
 threshold for the AL and Baseline models on every available eval dataset
 (``static_random``, ``mcmc``, ``train``, ``val``) and writes the results to
 ``<run_dir>/accuracy_trajectory.json``. The schema matches the cache produced
-post-hoc by ``scripts/plot_hit_rate_trajectories_multiseed.py``, so when that
+post-hoc by ``scripts/figures/plot_hit_rate_trajectories_multiseed.py``, so when that
 script later runs to render the multi-seed accuracy plots, every iteration
 already has a cache entry and no checkpoint reload / re-inference is needed.
 

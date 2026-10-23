@@ -21,13 +21,13 @@
 # is newer than the tarball, so re-running after a sweep only archives new or
 # updated runs. Run after every sweep completes:
 #
-#   bash scripts/archive_runs.sh
+#   bash scripts/campaign/archive_runs.sh
 #
 # Optional args: SRC dir, DEST dir, and a glob PATTERN over run-dir names
 # (default "*"). The bundle jobs pass their own name prefix as PATTERN so
 # concurrently finishing bundles each archive only their own runs:
 #
-#   bash scripts/archive_runs.sh /ptmp/jwuerzin/output \
+#   bash scripts/campaign/archive_runs.sh /ptmp/jwuerzin/output \
 #        /viper/u2/jwuerzin/pmssm-archive/runs "active_learning_dnn_top_k_cold_seed*"
 # ==============================================================================
 set -uo pipefail

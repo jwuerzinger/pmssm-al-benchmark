@@ -20,7 +20,7 @@ regions of one analysis also produce a kink but not a physically distinct mode.
 
 Read from the per-point ``.py`` outputs rather than the ntuples: the ntuple
 writer keyed per-analysis branches on AnalysisID alone, so signal regions
-overwrote one another (see scripts/best_analysis_arms.py, which calibrates that
+overwrote one another (see scripts/analysis/best_analysis_arms.py, which calibrates that
 bias). The random-scan pool kept no such outputs, so the reference here is
 *between arms*: the Deep GP is the surrogate whose acquisition works on this
 target (0.723 of its labelled set within a factor e of the boundary, coverage
@@ -33,10 +33,18 @@ specifically about picks that are *away* from the contour.
 
 Usage
 -----
-    python scripts/mode_switch_diagnostic.py                    # 1500 points/arm
-    python scripts/mode_switch_diagnostic.py --budget 4000 --iters-per-run 16
+    python scripts/analysis/mode_switch_diagnostic.py                    # 1500 points/arm
+    python scripts/analysis/mode_switch_diagnostic.py --budget 4000 --iters-per-run 16
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import json
@@ -47,7 +55,6 @@ from pathlib import Path
 import click
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from pmssm.iteration_housekeeping import iter_smodels_items  # noqa: E402
 
 MANIFEST = "/ptmp/jwuerzin/analysis/joint/manifest_expr.csv"

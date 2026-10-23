@@ -27,13 +27,21 @@ Additionally reports the fraction inside the pure-higgsino thermal window
 AL loops miss.
 
 Usage:
-    python scripts/composition_fractions.py \\
+    python scripts/analysis/composition_fractions.py \\
         --manifest /ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv \\
         --baseline-data-dir /ptmp/jwuerzin/data/18387358 \\
         --mcmc-data-dir /ptmp/jwuerzin/data/neutralino_v4 \\
         --output-dir /ptmp/jwuerzin/analysis/all_runs
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -42,15 +50,11 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from analyse_runs import FREE_PARAM_INDICES, FREE_PARAM_NAMES  # noqa: E402
-from mcmc_diagnostics import (  # noqa: E402
+from scripts.analysis.analyse_runs import FREE_PARAM_INDICES, FREE_PARAM_NAMES  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import (  # noqa: E402
     DEFAULT_AL_PICKS, _picks_from_manifest, picks_with_tag)
-from plot_al_input_target_diagnostics import _pooled_cell_data  # noqa: E402
+from scripts.figures.plot_al_input_target_diagnostics import _pooled_cell_data  # noqa: E402
 from pmssm.visualization import (  # noqa: E402
     LSP_PURITY_MIN,
     LSP_TYPE_NAMES,
@@ -346,7 +350,7 @@ def main(manifest, output_dir, baseline_data_dir, mcmc_data_dir, target_name, mo
     # ── random pool: SPheno fractions straight from the ntuples ──────────────
     if baseline_data_dir:
         import uproot                                       # noqa: PLC0415
-        import plot_hit_rate_trajectories_multiseed as phr   # noqa: PLC0415
+        import scripts.figures.plot_hit_rate_trajectories_multiseed as phr   # noqa: PLC0415
         # target_name, NOT "DMRD" (see compute_yield_comparison). Note this
         # script's --target is a FLOAT (the band centre), so the registry key
         # travels separately as --target-name.

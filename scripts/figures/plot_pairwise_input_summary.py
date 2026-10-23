@@ -21,6 +21,14 @@ Free parameters and their normalization match `analyse_runs.normalise_free_param
 """
 from __future__ import annotations
 
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import sys
 from pathlib import Path
 
@@ -31,11 +39,8 @@ import numpy as np
 import pandas as pd
 from matplotlib.colors import LogNorm, Normalize
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
-from analyse_runs import (  # noqa: E402
+from scripts.analysis.analyse_runs import (  # noqa: E402
     FREE_PARAM_NAMES,
     SCATTER_PAIRS,
     load_mcmc_numpy,

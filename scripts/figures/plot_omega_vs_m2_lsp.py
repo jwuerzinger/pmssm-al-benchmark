@@ -12,10 +12,18 @@ higgsino/mixed band climbing toward the target with mass, and the bino
 overabundant scatter above.
 
 Usage:
-    python scripts/plot_omega_vs_m2_lsp.py
-    python scripts/plot_omega_vs_m2_lsp.py --param M_1 --cut 150
+    python scripts/figures/plot_omega_vs_m2_lsp.py
+    python scripts/figures/plot_omega_vs_m2_lsp.py --param M_1 --cut 150
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import glob
 import sys
@@ -24,10 +32,6 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
 from pmssm.data import LSP_FRAC_BRANCHES  # noqa: E402
 from pmssm.visualization import (  # noqa: E402

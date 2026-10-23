@@ -10,9 +10,17 @@ interpolation and the styling are those of plot_hits_per_desired_heads.py.
 
 Usage
 -----
-    python scripts/plot_strategy_pair_heads.py --output .../strategy_pair_heads.png
+    python scripts/figures/plot_strategy_pair_heads.py --output .../strategy_pair_heads.png
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -26,13 +34,9 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 
-_HERE = Path(__file__).resolve().parent
-for p in (_HERE, _HERE.parent):
-    if str(p) not in sys.path:
-        sys.path.insert(0, str(p))
 
-import plot_hit_rate_trajectories_multiseed as H              # noqa: E402
-from plot_hits_per_desired_heads import _run_curve, _cell_on_grid, SMOOTH, smooth_rows  # noqa: E402
+import scripts.figures.plot_hit_rate_trajectories_multiseed as H              # noqa: E402
+from scripts.figures.plot_hits_per_desired_heads import _run_curve, _cell_on_grid, SMOOTH, smooth_rows  # noqa: E402
 
 TARGETS = {
     "DMRD": dict(manifest="/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv",

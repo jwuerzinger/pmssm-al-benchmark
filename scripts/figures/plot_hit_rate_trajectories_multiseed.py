@@ -21,6 +21,14 @@ Each metric produces three figures (one panel per tolerance):
 """
 from __future__ import annotations
 
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import csv
 import json
 import re
@@ -43,12 +51,8 @@ import numpy as np
 import pandas as pd
 import torch
 
-# Make the repo root importable so we can reuse analyse_runs utilities.
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
-from analyse_runs import compute_hit_rate_trajectory, load_run, filter_run_neutralino_lsp  # noqa: E402
+from scripts.analysis.analyse_runs import compute_hit_rate_trajectory, load_run, filter_run_neutralino_lsp  # noqa: E402
 
 
 # Module-level toggle for the post-hoc neutralino-LSP veto. Set from main().
@@ -2570,7 +2574,7 @@ def plot_best_per_model(traj, tols, uncertainty, true_val, out_dir,
 @click.option("--mcmc-yield-json",
               default="/ptmp/jwuerzin/analysis/all_runs/yield_comparison.json",
               show_default=True,
-              help="yield_comparison.json from scripts/compute_yield_comparison.py. "
+              help="yield_comparison.json from scripts/analysis/compute_yield_comparison.py. "
                    "When present, the MCMC distinct-in-band yield is drawn as a "
                    "horizontal reference line on the hit-rate and hits/desired "
                    "plots (per-attempt on hits/desired; divided by p_valid on "
@@ -2762,7 +2766,7 @@ def main(manifest, sweep_id, output_dir, uncertainty, target, tolerances,
             prevalence_per_attempt = None
 
     # ── MCMC distinct-in-band yield (horizontal reference lines) ─────────────
-    # Produced by scripts/compute_yield_comparison.py; per-attempt units.
+    # Produced by scripts/analysis/compute_yield_comparison.py; per-attempt units.
     mcmc_yield_by_tol: dict[float, float] = {}
     if mcmc_yield_json:
         try:

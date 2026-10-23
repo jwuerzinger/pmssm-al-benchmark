@@ -1,6 +1,6 @@
 """Read the head/strategy test runs at whatever iteration they have reached.
 
-The runs launched by ``slurm/submit_headtest_expr.sh`` are single-seed, are not
+The runs launched by ``slurm/experiments/submit_headtest_expr.sh`` are single-seed, are not
 registered in a sweep manifest, and will stop at different iterations when they
 hit their wall clock. The standard analysis path assumes complete runs listed in
 a manifest, so this reads the run directories directly and reports the headline
@@ -26,11 +26,19 @@ and which is worth running once the runs stop moving.
 
 Usage
 -----
-    python scripts/headtest_progress.py
-    python scripts/headtest_progress.py --glob '/ptmp/jwuerzin/output/headtest_*' \
+    python scripts/campaign/headtest_progress.py
+    python scripts/campaign/headtest_progress.py --glob '/ptmp/jwuerzin/output/headtest_*' \
         --target ExpR --tau 0.1
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import glob
 import json

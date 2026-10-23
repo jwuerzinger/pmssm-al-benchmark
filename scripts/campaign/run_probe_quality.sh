@@ -16,7 +16,7 @@
 # Launch detached so it survives logout (setsid puts it in a new session, so
 # the SIGHUP that follows the shell's exit is never delivered):
 #
-#   setsid nohup bash scripts/run_probe_quality.sh > <log> 2>&1 < /dev/null &
+#   setsid nohup bash scripts/campaign/run_probe_quality.sh > <log> 2>&1 < /dev/null &
 #
 # The UQ metrics (Var(z), rho, MCA, NLPD, CRPS, AUSE) are NOT here: they need a
 # GPU to re-evaluate each checkpoint, so they have to wait for a SLURM slot.
@@ -42,19 +42,19 @@ stage () {  # stage <label> <cmd...>
 }
 
 # ---- refresh the manifests: runs are still in flight, so pick up new dirs ----
-stage "manifest:extended" "${PY}" scripts/build_probe_manifest.py \
+stage "manifest:extended" "${PY}" scripts/campaign/build_probe_manifest.py \
     --pattern '*ext160*' --out "${EXT_DIR}/manifest.csv" --sweep-id ext160
-stage "manifest:20k" "${PY}" scripts/build_probe_manifest.py \
+stage "manifest:20k" "${PY}" scripts/campaign/build_probe_manifest.py \
     --pattern '*_20k_*' --out "${K20_DIR}/manifest.csv" --sweep-id probe20k
 
 # ---- composition: the slow stage (per-iteration worker ntuples) -------------
 # Pool and emcee reference rows are skipped here; the main body already has
 # them and re-reading 500k reference rows twice buys nothing.
-stage "composition:extended" "${PY}" scripts/composition_fractions.py \
+stage "composition:extended" "${PY}" scripts/analysis/composition_fractions.py \
     --manifest "${EXT_DIR}/manifest.csv" --output-dir "${EXT_DIR}" \
     --baseline-data-dir "" --mcmc-data-dir "" --require-neutralino-lsp
 
-stage "composition:20k" "${PY}" scripts/composition_fractions.py \
+stage "composition:20k" "${PY}" scripts/analysis/composition_fractions.py \
     --manifest "${K20_DIR}/manifest.csv" --output-dir "${K20_DIR}" \
     --baseline-data-dir "" --mcmc-data-dir "" --require-neutralino-lsp \
     --picks 'transformer:top_k:cold,dnn:top_k:cold,dnn_match_trafo:top_k:cold,deep_gp:top_k:warm'
@@ -66,12 +66,12 @@ stage "composition:20k" "${PY}" scripts/composition_fractions.py \
 # compared against the same yardstick.
 REF=/ptmp/jwuerzin/data/neutralino_v4
 
-stage "diagnostics:extended" "${PY}" scripts/mcmc_diagnostics.py \
+stage "diagnostics:extended" "${PY}" scripts/analysis/mcmc_diagnostics.py \
     --data-dir "${REF}" --mcmc-nwalkers 256 \
     --al-manifest "${EXT_DIR}/manifest.csv" --output-dir "${EXT_DIR}" \
     --require-neutralino-lsp
 
-stage "diagnostics:20k" "${PY}" scripts/mcmc_diagnostics.py \
+stage "diagnostics:20k" "${PY}" scripts/analysis/mcmc_diagnostics.py \
     --data-dir "${REF}" --mcmc-nwalkers 256 \
     --al-manifest "${K20_DIR}/manifest.csv" --output-dir "${K20_DIR}" \
     --require-neutralino-lsp \

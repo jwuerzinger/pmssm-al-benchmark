@@ -11,6 +11,14 @@ Output: one PNG per model named `<metric>_seeds_<model>_<strategy>_<warm>.png`.
 """
 from __future__ import annotations
 
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import sys
 from pathlib import Path
 
@@ -19,16 +27,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
-from analyse_runs import compute_hit_rate_trajectory, load_run  # noqa: E402
+from scripts.analysis.analyse_runs import compute_hit_rate_trajectory, load_run  # noqa: E402
 from pmssm import TARGET_CONFIG  # noqa: E402
 
 # Reuse helpers and registry from the existing multiseed script so the metric
 # definitions stay in sync.
-from scripts.plot_hit_rate_trajectories_multiseed import (  # noqa: E402
+from scripts.figures.plot_hit_rate_trajectories_multiseed import (  # noqa: E402
     METRICS,
     MODEL_COLORS,
     _best_setting_for_model,

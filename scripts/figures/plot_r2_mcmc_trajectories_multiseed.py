@@ -15,6 +15,14 @@ comparable.
 """
 from __future__ import annotations
 
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import sys
 from pathlib import Path
 
@@ -23,12 +31,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-# Make the repo root importable so we can reuse analyse_runs utilities.
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
-from analyse_runs import load_run  # noqa: E402
+from scripts.analysis.analyse_runs import load_run  # noqa: E402
 
 
 MODEL_COLORS = {

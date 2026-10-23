@@ -78,7 +78,7 @@ def target_validity_mask(Y, sp_mh, target="DMRD"):
     if valid_max is not None:
         mask = mask & (Y < valid_max)
         # Spelled exactly as it has been logged since this filter was
-        # introduced: scripts/plot_hit_rate_trajectories_multiseed.py recovers
+        # introduced: scripts/figures/plot_hit_rate_trajectories_multiseed.py recovers
         # p_valid from this line by regex, and a p_valid it cannot parse
         # silently changes the hits/desired denominator.
         desc = f"{branch} > 0 & < {valid_max:g} & SP_m_h != -1"

@@ -1315,7 +1315,7 @@ def main(testing, n_iterations, n_candidates, n_select, n_datasets, n_samples, v
         # Compute binary accuracy at the constraint threshold (target_value in
         # physical space) from the predictions already produced above, and
         # write them into <output_dir>/accuracy_trajectory.json in the schema
-        # consumed by scripts/plot_hit_rate_trajectories_multiseed.py. With
+        # consumed by scripts/figures/plot_hit_rate_trajectories_multiseed.py. With
         # this cache populated in-training, the offline accuracy plotter
         # downgrades to a pure cache read (no checkpoint reload, no inference).
         # Failures are non-fatal — accuracy is diagnostic.

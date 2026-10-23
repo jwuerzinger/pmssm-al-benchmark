@@ -14,11 +14,19 @@ and a curve ends where fewer than ``--min-seeds-axis`` seeds remain.
 
 Usage
 -----
-    python scripts/plot_accuracy_heads.py \
+    python scripts/figures/plot_accuracy_heads.py \
         --output /path/to/accuracy_heads.png \
         --summary-json /path/to/accuracy_heads.json
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -31,13 +39,9 @@ import numpy as np
 import pandas as pd
 import torch
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for p in (_REPO_ROOT, _REPO_ROOT / "scripts"):
-    if str(p) not in sys.path:
-        sys.path.insert(0, str(p))
 
-import plot_hit_rate_trajectories_multiseed as H  # noqa: E402
-from plot_hits_per_desired_heads import REG_PICKS, CLS_PICKS, parse_picks, GRID_POINTS, SMOOTH, smooth_rows, parse_axis_override, axis_min  # noqa: E402
+import scripts.figures.plot_hit_rate_trajectories_multiseed as H  # noqa: E402
+from scripts.figures.plot_hits_per_desired_heads import REG_PICKS, CLS_PICKS, parse_picks, GRID_POINTS, SMOOTH, smooth_rows, parse_axis_override, axis_min  # noqa: E402
 
 
 def _series(run_dir: Path, role: str, dataset: str) -> dict[int, float]:

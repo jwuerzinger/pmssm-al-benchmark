@@ -22,11 +22,19 @@ proposal of the emcee reference.
 
 Usage
 -----
-    python scripts/plot_hits_per_desired_heads.py \
+    python scripts/figures/plot_hits_per_desired_heads.py \
         --output /path/to/hits_per_desired_heads.png \
         --summary-json /path/to/hits_per_desired_heads.json
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -39,12 +47,8 @@ import numpy as np
 import pandas as pd
 import torch
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for p in (_REPO_ROOT, _REPO_ROOT / "scripts"):
-    if str(p) not in sys.path:
-        sys.path.insert(0, str(p))
 
-import plot_hit_rate_trajectories_multiseed as H  # noqa: E402
+import scripts.figures.plot_hit_rate_trajectories_multiseed as H  # noqa: E402
 
 # The paper's regression picks (DEFAULT_AL_PICKS without the matched DNN).
 REG_PICKS = {

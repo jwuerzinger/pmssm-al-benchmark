@@ -23,10 +23,18 @@ seeds remain.
 
 Usage
 -----
-    python scripts/plot_support_heads.py --metric budget  --output .../support_heads.png
-    python scripts/plot_support_heads.py --metric compute --output .../support_compute_heads.png
+    python scripts/figures/plot_support_heads.py --metric budget  --output .../support_heads.png
+    python scripts/figures/plot_support_heads.py --metric compute --output .../support_compute_heads.png
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -41,17 +49,13 @@ import numpy as np
 import pandas as pd
 import torch
 
-_HERE = Path(__file__).resolve().parent
-for p in (_HERE, _HERE.parent):
-    if str(p) not in sys.path:
-        sys.path.insert(0, str(p))
 
-import plot_hit_rate_trajectories_multiseed as H            # noqa: E402
-from plot_hits_per_desired_heads import REG_PICKS, CLS_PICKS, parse_picks, SMOOTH, smooth_rows, parse_axis_override, axis_min  # noqa: E402
-from coverage_saturation import _cells                      # noqa: E402
-from plot_support_efficiency import AXES, _al_sequence, _band_mask, _ref_curve  # noqa: E402
-from plot_prelim_support import _support_from_cache         # noqa: E402
-from plot_prelim_compute_support import _compute_hours      # noqa: E402
+import scripts.figures.plot_hit_rate_trajectories_multiseed as H            # noqa: E402
+from scripts.figures.plot_hits_per_desired_heads import REG_PICKS, CLS_PICKS, parse_picks, SMOOTH, smooth_rows, parse_axis_override, axis_min  # noqa: E402
+from scripts.analysis.coverage_saturation import _cells                      # noqa: E402
+from scripts.figures.plot_support_efficiency import AXES, _al_sequence, _band_mask, _ref_curve  # noqa: E402
+from scripts.figures.plot_prelim_support import _support_from_cache         # noqa: E402
+from scripts.figures.plot_prelim_compute_support import _compute_hours      # noqa: E402
 from pmssm.config import PARAM_ORDER                        # noqa: E402
 
 GRID_POINTS = 300

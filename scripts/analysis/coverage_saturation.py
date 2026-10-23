@@ -25,9 +25,17 @@ A curve that keeps rising with k at fixed N says single-run coverage is a
 strict subset of what the same budget buys when diversified.
 
 Usage:
-    python scripts/coverage_saturation.py --require-neutralino-lsp
+    python scripts/analysis/coverage_saturation.py --require-neutralino-lsp
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import json
@@ -37,12 +45,8 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from mcmc_diagnostics import (  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import (  # noqa: E402
     DEFAULT_AL_PICKS, MODEL_DISPLAY, PARAM_ORDER, picks_with_tag)
 
 AXES = ["IN_M_1", "IN_M_2", "IN_mu"]   # the axes carrying the constraint's information
@@ -234,8 +238,8 @@ def main(manifest, baseline_data_dir, mcmc_data_dir, cache_dir, output_dir,
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import plot_hit_rate_trajectories_multiseed as phr
-    from analyse_runs import filter_run_neutralino_lsp, load_run
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as phr
+    from scripts.analysis.analyse_runs import filter_run_neutralino_lsp, load_run
     from pmssm.data import load_mcmc_data
 
     rng = np.random.default_rng(RNG_SEED)

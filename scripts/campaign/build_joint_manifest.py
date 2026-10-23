@@ -13,14 +13,22 @@ output_benchmark40 copies are excluded: they are the frozen 40-iteration
 reference the benchmark analysis reads and must never be extended.
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import csv, glob, os, re, sys
 from pathlib import Path
 
 import click
 import torch
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from mcmc_diagnostics import picks_with_tag  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import picks_with_tag  # noqa: E402
 
 
 def _iters(d: str) -> int:

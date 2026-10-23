@@ -5,11 +5,11 @@ Why this exists
 No fresh active-learning run reaches 200 iterations inside the 24 h wall clock:
 the measured cost is 2-5 GPU-node-days per run, and the cost per iteration grows
 with the labelled set. Every cell therefore needs to be resumed several times.
-``AL_RESUME_TO`` in ``slurm/submit_al_bundled.sh`` does the resuming and is
+``AL_RESUME_TO`` in ``slurm/al/submit_al_bundled.sh`` does the resuming and is
 idempotent by construction (it derives each seed's ``n_additional`` from that
 seed's own ``state.pt`` and skips seeds already at the target), so the only
 missing piece is something that keeps calling it. That is this script, driven by
-``slurm/submit_campaign_chase.sh`` on a six-hourly self-resubmitting cycle.
+``slurm/campaign/submit_campaign_chase.sh`` on a six-hourly self-resubmitting cycle.
 
 What it will not do
 -------------------
@@ -31,10 +31,18 @@ Two sources, unioned:
 
 Usage
 -----
-    python scripts/campaign_chase.py --cells <csv> --dry-run
-    python scripts/campaign_chase.py --cells <csv> --queue-cap 24
+    python scripts/campaign/campaign_chase.py --cells <csv> --dry-run
+    python scripts/campaign/campaign_chase.py --cells <csv> --queue-cap 24
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import glob
@@ -47,7 +55,7 @@ from pathlib import Path
 
 import click
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = _REPO_ROOT
 OUTPUT_ROOT = "/ptmp/jwuerzin/output"
 EXPR_POOL = "/ptmp/jwuerzin/data/260804"
 DMRD_POOL = "/ptmp/jwuerzin/data/18387358"
@@ -342,7 +350,7 @@ def main(cells, resume_to, seeds, per_wake, queue_cap,
         cmd = ["sbatch", "--parsable", f"--job-name={name}",
                f"--partition={partition}", f"--nodes={len(seed_list)}",
                "--gres=gpu:2", f"--mem={mem}", "--exclusive", "--export=ALL",
-               "slurm/submit_al_bundled.sh"]
+               "slurm/al/submit_al_bundled.sh"]
         if dry_run:
             click.echo(f"  [dry ] {name:34s} seeds({prog}) -> +{resume_to}\n"
                        f"         base={c['base']}_seed*_{c['sweep_id']}\n"

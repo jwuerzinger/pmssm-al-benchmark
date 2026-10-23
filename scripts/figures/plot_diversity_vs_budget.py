@@ -76,12 +76,20 @@ Two accounting notes:
 Usage (relic density, the joint 40-iteration + extension manifest):
 
     P=/ptmp/jwuerzin/pixi-envs/pytorch-conda-forge-2863954108128992291/envs/rocm/bin/python
-    $P scripts/plot_diversity_vs_budget.py \\
+    $P scripts/figures/plot_diversity_vs_budget.py \\
         --manifest /ptmp/jwuerzin/analysis/joint/manifest_dmrd.csv \\
         --output-dir /ptmp/jwuerzin/analysis/joint/dmrd_diversity \\
         --pool-files 60 --pool-total-rows 1336242 --min-seeds 1
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -90,13 +98,9 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from mcmc_diagnostics import PARAM_ORDER, picks_with_tag  # noqa: E402
-from plot_support_efficiency import _al_sequence, _discover  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import PARAM_ORDER, picks_with_tag  # noqa: E402
+from scripts.figures.plot_support_efficiency import _al_sequence, _discover  # noqa: E402
 
 RNG_SEED = 20260818
 COLUMNS = [("all", "all simulated points, probes uniform in the scan box"),
@@ -450,7 +454,7 @@ def main(manifest, output_dir, baseline_data_dir, mcmc_data_dir, target,
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import plot_hit_rate_trajectories_multiseed as phr
+    import scripts.figures.plot_hit_rate_trajectories_multiseed as phr
     from pmssm.config import TARGET_CONFIG
 
     if from_json:

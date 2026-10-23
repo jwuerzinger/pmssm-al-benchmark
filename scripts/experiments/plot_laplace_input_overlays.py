@@ -15,12 +15,20 @@ Only the three matched pairs are drawn. The GPs and TabPFN have native
 posteriors and no Laplace arm, so they have nothing to compare against.
 
 Usage:
-    python scripts/plot_laplace_input_overlays.py \\
+    python scripts/experiments/plot_laplace_input_overlays.py \\
         --manifest /ptmp/jwuerzin/analysis/laplace_vs_dropout/manifest.csv \\
         --output-dir /ptmp/jwuerzin/analysis/laplace_vs_dropout \\
         --require-neutralino-lsp
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import sys
 from pathlib import Path
@@ -33,18 +41,14 @@ import numpy as np
 
 from matplotlib.lines import Line2D
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from analyse_runs import (  # noqa: E402
+from scripts.analysis.analyse_runs import (  # noqa: E402
     FREE_PARAM_INDICES,
     FREE_PARAM_NAMES,
     filter_run_neutralino_lsp,
     load_run,
 )
-from plot_hit_rate_trajectories_multiseed import (  # noqa: E402
+from scripts.figures.plot_hit_rate_trajectories_multiseed import (  # noqa: E402
     LAPLACE_LS,
     MODEL_COLORS,
     MODEL_DISPLAY,

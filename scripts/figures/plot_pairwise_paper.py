@@ -16,10 +16,18 @@ Presentation changes for the paper:
 
 Usage
 -----
-    python scripts/plot_pairwise_paper.py --model transformer --strategy cls_entropy \
+    python scripts/figures/plot_pairwise_paper.py --model transformer --strategy cls_entropy \
         --warm cold --output .../pairwise_density_transformer_cls_entropy_cold.png
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import sys
 from pathlib import Path
@@ -33,15 +41,11 @@ from matplotlib.colors import LogNorm, Normalize
 import numpy as np
 import pandas as pd
 
-_HERE = Path(__file__).resolve().parent
-for p in (_HERE, _HERE.parent):
-    if str(p) not in sys.path:
-        sys.path.insert(0, str(p))
 
-from analyse_runs import (FREE_PARAM_NAMES, FREE_PARAM_LO, FREE_PARAM_HI,  # noqa: E402
+from scripts.analysis.analyse_runs import (FREE_PARAM_NAMES, FREE_PARAM_LO, FREE_PARAM_HI,  # noqa: E402
                           load_mcmc_numpy, load_run, normalise_free_params)
-from plot_pairwise_input_summary import _pair_indices, _stack_hists, _mcmc_density  # noqa: E402
-import plot_hit_rate_trajectories_multiseed as H                         # noqa: E402
+from scripts.figures.plot_pairwise_input_summary import _pair_indices, _stack_hists, _mcmc_density  # noqa: E402
+import scripts.figures.plot_hit_rate_trajectories_multiseed as H                         # noqa: E402
 
 # The six parameters of the distribution figure (no trilinears), same units (GeV).
 PAIRS = [("M_1", "M_2"), ("M_1", "mu"), ("M_2", "mu"), ("meL", "meR"), ("M_1", "tanb"),

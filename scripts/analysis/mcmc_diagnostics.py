@@ -39,6 +39,14 @@ and localization"):
 """
 from __future__ import annotations
 
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import argparse
 import glob
 import sys
@@ -80,7 +88,7 @@ DEFAULT_AL_PICKS = {
 def picks_with_tag(tag, base=None):
     """DEFAULT_AL_PICKS re-keyed for an OUTPUT_TAG variant sweep.
 
-    slurm/submit_strategy_sweep.sh's OUTPUT_TAG suffixes the manifest's model
+    slurm/al/submit_strategy_sweep.sh's OUTPUT_TAG suffixes the manifest's model
     column ("transformer" -> "transformer_expr"), so a variant sweep matches
     none of the default keys. Re-keying keeps each model's canonical
     (strategy, warm) pick while letting the manifest rows resolve.

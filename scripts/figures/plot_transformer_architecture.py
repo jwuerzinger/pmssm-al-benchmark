@@ -1,8 +1,16 @@
 """Generate a PNG diagram of the PMSSMTransformerTabular architecture.
 
 Run from the repo root:
-    ./.pixi/envs/rocm/bin/python scripts/plot_transformer_architecture.py
+    ./.pixi/envs/rocm/bin/python scripts/figures/plot_transformer_architecture.py
 """
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 from pathlib import Path
 
@@ -11,7 +19,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 
-OUT = Path(__file__).resolve().parent.parent / "doc" / "transformer_architecture.png"
+OUT = _REPO_ROOT / "doc" / "transformer_architecture.png"
 
 # ── colour scheme ────────────────────────────────────────────────────────────
 C_EMBED = "#cfe8ff"

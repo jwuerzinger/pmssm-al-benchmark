@@ -16,9 +16,17 @@ band. It is not the per-attempt yield, which additionally folds in the fraction
 of proposals the simulator rejects.
 
 Usage:
-    python scripts/plot_hitrate_vs_labelled.py
+    python scripts/figures/plot_hitrate_vs_labelled.py
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import csv
 import sys
@@ -32,12 +40,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from plot_hit_rate_trajectories_multiseed import (  # noqa: E402
+from scripts.figures.plot_hit_rate_trajectories_multiseed import (  # noqa: E402
     MODEL_COLORS,
     MODEL_DISPLAY,
 )

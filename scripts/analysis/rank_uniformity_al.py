@@ -25,10 +25,23 @@ seeded runs acquire statistically indistinguishable point sets), never a
 statement about calibration of the underlying distribution.
 
 Run with the Run3ModelGen environment, which carries emcee and arviz:
-    Run3ModelGen/.pixi/envs/default/bin/python scripts/rank_uniformity_al.py \\
+    Run3ModelGen/.pixi/envs/default/bin/python scripts/analysis/rank_uniformity_al.py \\
         --require-neutralino-lsp --no-fold-signs
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+# emcee_diagnostics comes from the Run3ModelGen submodule's script directory.
+_R3MG_SCRIPTS = _REPO_ROOT / "Run3ModelGen" / "source" / "Run3ModelGen" / "scripts"
+if str(_R3MG_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_R3MG_SCRIPTS))
+
 
 import json
 import sys
@@ -37,18 +50,13 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts"),
-           str(_REPO_ROOT / "Run3ModelGen" / "source" / "Run3ModelGen" / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
 try:                       # needs the Run3ModelGen env (emcee, arviz)
     import emcee_diagnostics as ed  # noqa: E402  (single source of truth)
 except ImportError:        # --export-only runs in the torch env instead
     ed = None
 
-from mcmc_diagnostics import (  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import (  # noqa: E402
     DEFAULT_AL_PICKS,
     picks_with_tag,
     MODEL_DISPLAY,
@@ -56,7 +64,7 @@ from mcmc_diagnostics import (  # noqa: E402
 )
 
 try:                                    # only needed when building the cache
-    from mcmc_diagnostics import _load_al_chains  # noqa: E402
+    from scripts.analysis.mcmc_diagnostics import _load_al_chains  # noqa: E402
 except Exception:                       # pragma: no cover
     _load_al_chains = None
 

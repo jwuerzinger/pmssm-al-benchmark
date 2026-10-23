@@ -78,16 +78,16 @@ M5  uncertainty profile against |t|: sigma (regression) or predictive entropy
 Usage
 -----
     # ExpR, the target where the dropout surrogates fail
-    python scripts/head_swap_stage_a.py --target ExpR \
+    python scripts/experiments/head_swap_stage_a.py --target ExpR \
         --models dnn_expr,transformer_expr --iterations 10,40 --n-inits 3
 
     # the relic-density comparison for M4 (loss mass) on the same footing
-    python scripts/head_swap_stage_a.py --target DMRD \
+    python scripts/experiments/head_swap_stage_a.py --target DMRD \
         --manifest /ptmp/jwuerzin/analysis/all_runs/manifest_mainbody.csv \
         --models dnn,transformer --iterations 40 --n-inits 3
 
     # shape check on one snapshot, small pool, one init
-    python scripts/head_swap_stage_a.py --smoke --models dnn_expr --seeds 1
+    python scripts/experiments/head_swap_stage_a.py --smoke --models dnn_expr --seeds 1
 
 Notes
 -----
@@ -103,6 +103,14 @@ Notes
 """
 from __future__ import annotations
 
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import csv
 import json
 import math
@@ -116,9 +124,6 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
 from pmssm.config import TARGET_CONFIG  # noqa: E402
 from pmssm.heads import get_head  # noqa: E402

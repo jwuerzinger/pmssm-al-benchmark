@@ -22,10 +22,18 @@ Sample loading is that of plot_distribution_overlay_rows.py (--best-picks).
 
 Usage
 -----
-    python scripts/plot_corner_overlay.py --manifest .../sweep_manifest_paper.csv \
+    python scripts/figures/plot_corner_overlay.py --manifest .../sweep_manifest_paper.csv \
         --best-picks transformer:cls_entropy:cold,... --output .../corner_overlay_best.png
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -43,17 +51,13 @@ import numpy as np
 import pandas as pd
 from scipy.ndimage import gaussian_filter
 
-_HERE = Path(__file__).resolve().parent
-for p in (_HERE, _HERE.parent):
-    if str(p) not in sys.path:
-        sys.path.insert(0, str(p))
 
-import plot_hit_rate_trajectories_multiseed as H                         # noqa: E402
-from plot_hits_per_desired_heads import parse_picks                       # noqa: E402
-from plot_al_input_target_diagnostics import _pooled_cell_data, _arm_color  # noqa: E402
-from plot_distribution_overlay import PRETTY                               # noqa: E402
-from plot_distribution_overlay_rows import SHOWN, MODEL_ORDER, _band       # noqa: E402
-from analyse_runs import FREE_PARAM_NAMES, FREE_PARAM_INDICES              # noqa: E402
+import scripts.figures.plot_hit_rate_trajectories_multiseed as H                         # noqa: E402
+from scripts.figures.plot_hits_per_desired_heads import parse_picks                       # noqa: E402
+from scripts.figures.plot_al_input_target_diagnostics import _pooled_cell_data, _arm_color  # noqa: E402
+from scripts.figures.plot_distribution_overlay import PRETTY                               # noqa: E402
+from scripts.figures.plot_distribution_overlay_rows import SHOWN, MODEL_ORDER, _band       # noqa: E402
+from scripts.analysis.analyse_runs import FREE_PARAM_NAMES, FREE_PARAM_INDICES              # noqa: E402
 from pmssm.config import TARGET_CONFIG                                     # noqa: E402
 
 LEVELS = (0.39, 0.86)  # 1 and 2 sigma of a 2-D Gaussian

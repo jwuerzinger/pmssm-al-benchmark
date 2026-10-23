@@ -34,10 +34,18 @@ regions) rather than an artefact of projection.
 Usage:
 
     P=/ptmp/jwuerzin/pixi-envs/pytorch-conda-forge-2863954108128992291/envs/rocm/bin/python
-    $P scripts/find_islands.py --manifest /ptmp/jwuerzin/analysis/joint/manifest_dmrd.csv \\
+    $P scripts/analysis/find_islands.py --manifest /ptmp/jwuerzin/analysis/joint/manifest_dmrd.csv \\
         --output-dir /ptmp/jwuerzin/analysis/joint/dmrd_islands --min-seeds 1
 """
 from __future__ import annotations
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import json
 import sys
@@ -46,13 +54,9 @@ from pathlib import Path
 import click
 import numpy as np
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "scripts")):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
 
-from mcmc_diagnostics import PARAM_ORDER, picks_with_tag  # noqa: E402
-from plot_support_efficiency import _al_sequence, _discover  # noqa: E402
+from scripts.analysis.mcmc_diagnostics import PARAM_ORDER, picks_with_tag  # noqa: E402
+from scripts.figures.plot_support_efficiency import _al_sequence, _discover  # noqa: E402
 
 AXES = ["IN_M_1", "IN_M_2", "IN_mu"]
 
