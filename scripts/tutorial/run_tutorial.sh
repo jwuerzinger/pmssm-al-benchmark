@@ -2,7 +2,7 @@
 # The tutorial of doc/TUTORIAL.md, executable end to end:
 #   two oracle-mode loops on the data sample, a manifest for them, and the
 #   single-run and comparison figures. The two loops run concurrently: about
-#   half an hour on a CPU with four threads each, a few minutes on a GPU.
+#   forty minutes on a CPU with four threads each, a few minutes on a GPU.
 #
 #   pixi run -e rocm tutorial            # or: bash scripts/tutorial/run_tutorial.sh
 #

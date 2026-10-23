@@ -126,7 +126,7 @@ development partition, including the physics chain.
 a 12 MB data sample shipped with the repository, two runs in the oracle configuration (candidates drawn
 from the reference and labelled by lookup), the run directory, a manifest and
 the comparison figure that the paper's figures are built from.
-`pixi run -e rocm tutorial` executes the same steps end to end, about twenty
+`pixi run -e rocm tutorial` executes the same steps end to end, about forty
 minutes on a CPU.
 
 ## The benchmark campaign
@@ -161,7 +161,7 @@ produced silently wrong numbers before.
 
 | guide | contents |
 |---|---|
-| [doc/TUTORIAL.md](doc/TUTORIAL.md) | a complete loop on a small sample, no cluster needed; also runnable as `pixi run tutorial` |
+| [doc/TUTORIAL.md](doc/TUTORIAL.md) | a complete loop on a small sample, with the plots to expect; also runnable as `pixi run tutorial` |
 | [doc/ACQUISITION.md](doc/ACQUISITION.md) | candidate generation, the tolerance cut and proximity weighting, the selection strategies, the acquisition heads |
 | [doc/TARGETS.md](doc/TARGETS.md) | the target registry (`DMRD`, `ExpR`), the SModelS prerequisite, the two definitions of the in-band support |
 | [doc/CLI_REFERENCE.md](doc/CLI_REFERENCE.md) | the complete option list of the four pipelines, YAML sweeps, resuming |

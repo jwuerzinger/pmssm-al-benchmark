@@ -2,7 +2,7 @@
 
 This walkthrough runs the whole loop on a small data sample, without the
 physics chain, and ends with the kind of figure the paper is made of. It
-takes about half an hour on a CPU (the two runs of step 4 can run side by side) and a few minutes on a GPU. Every command
+takes about forty minutes on a CPU with four threads per loop (the two loops of step 4 run side by side) and a few minutes on a GPU. Every command
 below is also in `scripts/tutorial/run_tutorial.sh`, so
 
 ```bash
@@ -128,6 +128,45 @@ print(s["al_n_train"])          # labelled-set size after each iteration
 A production run writes exactly this layout, plus the simulator's ntuples and
 packed workspaces per iteration; the figure scripts read nothing else.
 
+### What you should see after one iteration
+
+The diagnostics below are from `iteration_001/plots/` of the first run as it
+came out on a CPU; yours will differ in detail (the seed fixes the data, not
+the CPU's floating-point order) but not in shape.
+
+![Candidate uncertainty against each free parameter after the first training](tutorial/candidate_uncertainty_iter001.png)
+
+*`plots/al/al_candidate_uncertainty_iter001.png`: the MC-dropout spread of the
+5,000 candidates against each free parameter. The binned mean (black) is high
+where the relic density changes fastest, at small |M_1|, |M_2| and |mu|,
+where the lightest neutralino is light, and flat in the trilinear couplings
+and tan β, which the surrogate has already found to matter little. The
+selection happens where this line is high and the predicted Ω h² is close to
+0.12. The dots follow the reference posterior, because that is where the
+oracle configuration draws its candidates.*
+
+![True against predicted relic density after iteration 1](tutorial/true_vs_predicted_iter001.png)
+
+*`plots/scatterplots_iter_001.png`: true against predicted Ω h² for the
+active-learning model (top) and the random baseline (bottom) on the four
+evaluation sets. With 1,200 training points both are rough, R² between 0.3
+and 0.45 on the validation and static sets, and bino-like points (blue)
+scatter to large Ω h² while higgsino- and wino-like ones pile up near zero.
+The large negative R² on the MCMC set is expected, not a defect: that set lies
+inside the band by construction and has almost no target variance to
+explain (`doc/REPRODUCING_THE_PAPER.md`).*
+
+![Relic densities of the batch selected in iteration 1](tutorial/new_target_histogram_iter001.png)
+
+*`plots/al/al_new_target_histogram_iter001.png`: the relic densities of the
+100 points selected in iteration 1, all within a factor of about 1.5 of
+0.12. The tolerance cut keeps only candidates the surrogate predicts near
+the boundary, and in the oracle configuration the candidates themselves come
+from the posterior. A production run shows a broader spread, because the
+simulator labels what the surrogate predicted and the surrogate is wrong part
+of the time; the fraction that lands in the band is the hit rate the figures
+of step 5 track.*
+
 ## 4. A second run, and a manifest
 
 Run the same loop with greedy selection:
@@ -179,16 +218,49 @@ In `tutorial_runs/figures/` you get `hit_rate_single_run.png` and
 `hits_per_desired_single_run.png` for the first run, and for the comparison
 `hit_rate_best_per_model.png`, `hit_rate_strategy_<strategy>.png`,
 `hit_rate_model_transformer.png` and their `hits_per_desired_*` twins, one
-panel per tolerance. Solid lines are the active-learning model, dashed lines
-the random baseline, the horizontal line the pool's own in-band fraction; the
-`hits_per_desired` figures divide by the number of simulator calls the
-labelled points would have cost, which is the paper's cost-aware metric.
-Beside the figures the script writes `random_baseline_prevalence.json` and
-`data_efficiency_best_per_model.json`, the numbers behind the curves.
+panel per tolerance band (10 %, 20 %, 50 % around 0.12). Beside the figures
+the script writes `random_baseline_prevalence.json` (the pool's in-band
+fraction and the validity fraction p_valid) and
+`scan_efficiency_improvement.json` (the active-learning rate per simulator
+call against the random one, per cell and band), the numbers behind the
+curves.
 
-With one seed per cell and five iterations the curves are noisy and the two
-strategies may well cross; the paper's figures average five seeds over 40 to
-200 iterations. `--min-seeds 1` is what lets a single seed through at all.
+### What you should see
+
+![Hit rate of the first run against iteration](tutorial/hit_rate_single_run.png)
+
+*`hit_rate_single_run.png`: the fraction of the cumulative labelled set that
+lies in the band, one panel per tolerance. It starts at the pool's own
+in-band fraction (about 1 % at 10 %) because the initial 1,500 models are a
+random draw, and rises with every iteration because every added batch lands
+in or near the band. The run directory name in the title is the one you
+passed.*
+
+![Hit rate against iteration for both strategies](tutorial/hit_rate_model_transformer.png)
+
+*`hit_rate_model_transformer.png`: the same metric for both runs. Colour is
+the strategy, the dashed line style marks the cold start (a warm-started
+run would be solid), and the dotted horizontal line is the random scan: the
+pool's in-band fraction, 0.9 % at the 10 % band. With one seed the two
+strategies sit within a few per cent of each other and their order carries no
+information; the paper's figures average five seeds over 40 to 200
+iterations. `--min-seeds 1` is what lets a single seed through at all.*
+
+![Hits per simulator call for both strategies](tutorial/hits_per_desired_model_transformer.png)
+
+*`hits_per_desired_model_transformer.png`: the paper's cost-aware metric,
+in-band models per simulator call. The random scan's reference line is lower
+here than in the previous figure (0.39 % at the 10 % band) because only a
+fraction p_valid of simulated points survives the validity cuts at all
+(0.44 on this sample). After five iterations the loops reach about 0.06, a
+factor 15 over the random scan at the 10 % band
+(`scan_efficiency_improvement.json`).*
+
+Treat these numbers as a demonstration of the machinery, not as a result:
+in the oracle configuration every candidate is a point of the posterior, so
+the selection cannot miss the band the way it does when the surrogate picks
+points of the flat prior and the simulator decides. The paper's hit rates
+are measured on simulated labels and are not comparable to these.
 
 ## 6. From here to the production loop
 
