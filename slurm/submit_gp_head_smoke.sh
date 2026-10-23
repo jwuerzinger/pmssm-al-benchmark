@@ -55,7 +55,7 @@ run () {   # run <label> <model_type> <head> <strategy> <extra...>
     echo "=============================================================="
     echo " smoke [${label}]: ${mt} head=${head} strategy=${strat}"
     echo "=============================================================="
-    "${PYTHON}" active_learning_gp.py \
+    "${PYTHON}" pipelines/active_learning_gp.py \
         --model-type "${mt}" \
         --target ExpR \
         --head "${head}" --selection-strategy "${strat}" \
@@ -83,10 +83,10 @@ run TEST    deep_gp  classification     cls_entropy   --num-inducing-max 256
 echo "=============================================================="
 echo " smoke: guards (each must print a UsageError, not run)"
 echo "=============================================================="
-"${PYTHON}" active_learning_gp.py --model-type exact_gp --target ExpR \
+"${PYTHON}" pipelines/active_learning_gp.py --model-type exact_gp --target ExpR \
     --head classification --selection-strategy bald --n-iterations 1 2>&1 | tail -3
-"${PYTHON}" active_learning_gp.py --model-type deep_gp --target ExpR \
+"${PYTHON}" pipelines/active_learning_gp.py --model-type deep_gp --target ExpR \
     --head classification --selection-strategy entropy_batch --n-iterations 1 2>&1 | tail -3
-"${PYTHON}" active_learning_gp.py --model-type exact_gp --target ExpR \
+"${PYTHON}" pipelines/active_learning_gp.py --model-type exact_gp --target ExpR \
     --head regression --selection-strategy bald --n-iterations 1 2>&1 | tail -3
 echo "[smoke] done"

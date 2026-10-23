@@ -11,7 +11,7 @@
 #   classification cls_entropy     5 models x 2 targets = 10 cells
 #
 # TabPFN is absent from the classification arms on purpose:
-# active_learning_tabpfn.py has no --head and offers neither bald nor
+# pipelines/active_learning_tabpfn.py has no --head and offers neither bald nor
 # cls_entropy in its --selection-strategy choices.
 #
 # entropy_batch is NOT here. Its 200-iteration continuations are the 12 b200*/

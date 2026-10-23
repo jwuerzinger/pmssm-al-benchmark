@@ -118,7 +118,7 @@ def main(run_dir, output_dir, iteration, baseline_data_dir, target, model_type,
          lengthscale, noise, jitter, num_hidden_dims, num_middle_dims,
          num_inducing_max, gp_num_samples, n_train_init, n_val_init,
          islands_json):
-    from active_learning_gp import cross_evaluate_gp
+    from pipelines.active_learning_gp import cross_evaluate_gp
     from pmssm.config import PARAM_ORDER, TARGET_CONFIG
     from pmssm.data import build_norm_tensors, load_pmssm_data, transform_y
     from pmssm.training import create_gp_model

@@ -131,7 +131,7 @@ echo "[params] AL_GENERATE_DATA=${AL_GENERATE_DATA:---generate-data}"
 # ---- Run active learning -----------------------------------------------------
 source "${REPO_ROOT}/slurm/resume_args.sh"
 
-"${PYTHON}" active_learning.py \
+"${PYTHON}" pipelines/active_learning_transformer.py \
     --y-transform log \
     --n-samples "${AL_N_SAMPLES:-2000}" \
     --n-iterations "${AL_N_ITERATIONS:-40}" \

@@ -146,7 +146,7 @@ echo "[params] AL_GENERATE_DATA=${AL_GENERATE_DATA:---generate-data}"
 # ---- Run active learning -----------------------------------------------------
 source "${REPO_ROOT}/slurm/resume_args.sh"
 
-"${PYTHON}" active_learning_tabpfn.py \
+"${PYTHON}" pipelines/active_learning_tabpfn.py \
     --n-samples "${AL_N_SAMPLES:-2000}" \
     --n-iterations "${AL_N_ITERATIONS:-40}" \
     --n-select "${AL_N_SELECT:-500}" \

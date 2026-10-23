@@ -23,7 +23,7 @@ OUT=/ptmp/jwuerzin/output/lsq_smoke_${SLURM_JOB_ID}
 rc=0
 for strat in bald cls_entropy; do
     echo "=============== lsq_classification / ${strat} ==============="
-    "${PY}" active_learning_gp.py \
+    "${PY}" pipelines/active_learning_gp.py \
         --target ExpR --no-mcmc-eval --data-dir "${POOL}" \
         --model-type exact_gp --head lsq_classification \
         --selection-strategy "${strat}" \

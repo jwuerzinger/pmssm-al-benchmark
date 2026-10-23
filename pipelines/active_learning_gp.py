@@ -4,19 +4,24 @@ Active Learning pipeline for pMSSM relic density prediction using Gaussian Proce
 Uses ExactGP, DeepGP, SparseGP, or MLP models from the al_pmssmwithgp submodule with
 native GP posterior variance for uncertainty estimation.
 
-Harmonized with active_learning.py to use the unified pmssm package.
+Harmonized with active_learning_transformer.py to use the unified pmssm package.
 """
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 import warnings
 import random
 import re
 warnings.filterwarnings('ignore', message='.*enable_nested_tensor.*')
 
-import sys
-from pathlib import Path
-
-# Add gp_pipeline to import path
-_GP_PIPELINE_ROOT = Path(__file__).parent / "al_pmssmwithgp" / "model"
+# The GP models live in the al_pmssmwithgp submodule.
+_GP_PIPELINE_ROOT = _REPO_ROOT / "al_pmssmwithgp" / "model"
 sys.path.insert(0, str(_GP_PIPELINE_ROOT))
 
 # Import from unified pmssm package
@@ -528,7 +533,7 @@ def main(testing, n_iterations, n_candidates, n_select, n_datasets, n_samples, v
         n_candidates = n_select
 
     output_dir = Path(output_dir)
-    # Collision-free dir suffix (same contract as active_learning.py).
+    # Collision-free dir suffix (same contract as active_learning_transformer.py).
     warm_tag = "warm" if warm_starting else "cold"
     _head_tag = "" if head == "regression" else f"_{head}"
     auto_suffix = f"{_head_tag}_{selection_strategy}_{warm_tag}_seed{seed}_{timestamp}"
@@ -1841,7 +1846,7 @@ def main(testing, n_iterations, n_candidates, n_select, n_datasets, n_samples, v
         plot_iteration_metrics(iteration_numbers, al_metrics, baseline_metrics,
                               output_dir, logger)
 
-        from make_iteration_gifs import generate_gifs
+        from pmssm.gifs import generate_gifs
         generate_gifs(output_dir, logger=logger)
     else:
         logger.info(f"Single iteration - AL: val_loss={al_val_losses[0]:.6f}, "

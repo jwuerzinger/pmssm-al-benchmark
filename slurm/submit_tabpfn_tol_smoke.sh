@@ -21,7 +21,7 @@ export PYTHONPATH="${SLURM_SUBMIT_DIR}:${SLURM_SUBMIT_DIR}/al_pmssmwithgp/model:
 export TABPFN_TOKEN="${TABPFN_TOKEN:-}"
 PY="${SLURM_SUBMIT_DIR}/.pixi/envs/rocm/bin/python"
 OUT=/ptmp/jwuerzin/output/tabpfn_tol_smoke_${SLURM_JOB_ID}
-"${PY}" active_learning_tabpfn.py \
+"${PY}" pipelines/active_learning_tabpfn.py \
     --target DMRD --n-iterations 2 --n-select 20 --n-candidates 5000 \
     --n-samples 400 --data-dir /ptmp/jwuerzin/data/18387358 \
     --static-eval-size 2000 --no-mcmc-eval --no-generate-data \

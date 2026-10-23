@@ -85,7 +85,7 @@ echo "[gpu] Using --gpu-ids ${GPU_IDS} (${N_GPUS} GPU(s) detected)"
 
 source "${REPO_ROOT}/slurm/resume_args.sh"
 
-"${PYTHON}" active_learning_gp.py \
+"${PYTHON}" pipelines/active_learning_gp.py \
     --model-type deep_gp \
     --epochs 10000 \
     --early-stopping \

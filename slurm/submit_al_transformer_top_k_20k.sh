@@ -92,7 +92,7 @@ echo "[gpu] Using --gpu-ids ${GPU_IDS} (${N_GPUS} GPU(s) detected)"
 # ---- Run active learning -----------------------------------------------------
 source "${REPO_ROOT}/slurm/resume_args.sh"
 
-"${PYTHON}" active_learning.py \
+"${PYTHON}" pipelines/active_learning_transformer.py \
     --y-transform log \
     --epochs 10000 \
     --generate-data \

@@ -43,7 +43,7 @@ for spec in "regression:tol_only_random" "classification:bald"; do
     echo "=============================================================="
     echo " smoke: head=${HEAD} strategy=${STRAT}"
     echo "=============================================================="
-    "${PYTHON}" active_learning_dnn.py \
+    "${PYTHON}" pipelines/active_learning_dnn.py \
         --testing \
         --target ExpR --y-transform log \
         --head "${HEAD}" \
@@ -63,9 +63,9 @@ done
 echo "=============================================================="
 echo " smoke: guards"
 echo "=============================================================="
-"${PYTHON}" active_learning_dnn.py --target ExpR --head classification \
+"${PYTHON}" pipelines/active_learning_dnn.py --target ExpR --head classification \
     --selection-strategy entropy_batch --n-iterations 1 2>&1 | tail -3
-"${PYTHON}" active_learning_dnn.py --target ExpR --head regression \
+"${PYTHON}" pipelines/active_learning_dnn.py --target ExpR --head regression \
     --selection-strategy bald --n-iterations 1 2>&1 | tail -3
 
 echo "[smoke] overall exit=${rc}"

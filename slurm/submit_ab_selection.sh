@@ -32,7 +32,7 @@ echo "### PRE-CHANGE driver (HEAD~1) ###"
 "${PY}" "${PRE}" "${ARGS[@]}" --output-dir "${OUT}/pre" >"${OUT}_pre.txt" 2>&1
 echo "pre exit=$?"
 echo "### POST-CHANGE driver (working tree) ###"
-"${PY}" active_learning_dnn.py "${ARGS[@]}" --output-dir "${OUT}/post" >"${OUT}_post.txt" 2>&1
+"${PY}" pipelines/active_learning_dnn.py "${ARGS[@]}" --output-dir "${OUT}/post" >"${OUT}_post.txt" 2>&1
 echo "post exit=$?"
 for f in "${OUT}_pre.txt" "${OUT}_post.txt"; do
   echo "--- tail of $(basename $f) ---"; tail -4 "$f"

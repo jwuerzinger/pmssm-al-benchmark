@@ -53,7 +53,7 @@ echo "[smoke] verify exit=$?"
 echo "=============================================================="
 echo " 2. laplace_gpc end to end, BALD"
 echo "=============================================================="
-"${PYTHON}" active_learning_gp.py \
+"${PYTHON}" pipelines/active_learning_gp.py \
     --model-type laplace_gpc --target ExpR \
     --head classification --selection-strategy bald \
     --n-iterations 2 --n-select 20 --n-candidates 3000 \
@@ -70,7 +70,7 @@ if false; then
 echo "=============================================================="
 echo " 3. deep_gp + Bernoulli, BALD (checkpoint-reload regression test)"
 echo "=============================================================="
-"${PYTHON}" active_learning_gp.py \
+"${PYTHON}" pipelines/active_learning_gp.py \
     --model-type deep_gp --target ExpR \
     --head classification --selection-strategy bald \
     --n-iterations 2 --n-select 20 --n-candidates 3000 \

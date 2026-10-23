@@ -73,7 +73,7 @@ echo "[gpu] PIXI_ENV=${PIXI_ENV}"
 # Slurm remaps physical GPUs via CUDA_VISIBLE_DEVICES, so 0,1 are always correct
 source "${REPO_ROOT}/slurm/resume_args.sh"
 
-"${PYTHON}" active_learning_gp.py \
+"${PYTHON}" pipelines/active_learning_gp.py \
     --model-type exact_gp \
     --n-samples 2000 \
     --n-iterations 5 \

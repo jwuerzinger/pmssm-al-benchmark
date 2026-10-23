@@ -535,7 +535,7 @@ def _static_random_indices(n_pool: int, n_initial_reserved: int,
                            static_eval_size: int = 100_000) -> np.ndarray:
     """Reproduce the static-random eval indices into the unshuffled X_full pool.
 
-    Mirrors active_learning.py:474-482: a torch.Generator with manual_seed(123)
+    Mirrors pipelines/active_learning_transformer.py:474-482: a torch.Generator with manual_seed(123)
     permutes the post-reserved tail of the pool, and the first
     `static_eval_size` of those become the static eval set.
 
@@ -553,7 +553,7 @@ def _static_random_indices(n_pool: int, n_initial_reserved: int,
 def _baseline_iter_y(state: dict, Y_full_shuffled: np.ndarray, iter_idx: int) -> np.ndarray | None:
     """Reconstruct the baseline cumulative training Y values at iteration `iter_idx`.
 
-    Layout of `baseline_add_indices` (from active_learning.py): all train indices
+    Layout of `baseline_add_indices` (from pipelines/active_learning_transformer.py): all train indices
     in addition order, followed by all val indices. So the first
     `n_added_train` entries always recover the baseline-train indices ever
     added by iteration i.
@@ -588,7 +588,7 @@ def _baseline_iter_xy(state: dict, X_full_shuffled: np.ndarray, Y_full_shuffled:
     """Reconstruct the baseline cumulative (X, Y) at iteration `iter_idx` for `role`.
 
     `role` is "train" or "val". Layout of `baseline_add_indices` is
-    [train-additions ..., val-additions ...] (see active_learning.py:691-693);
+    [train-additions ..., val-additions ...] (see pipelines/active_learning_transformer.py:691-693);
     state["X"], state["Y"] hold AL train data only — for the baseline we re-use
     the same INITIAL train pool (the al_n_train[0] / al_n_val[0] heads of
     state.X / state.X_val are also baseline init since both drivers share the
@@ -927,7 +927,7 @@ def _load_iter_model(model_type: str, role: str, iter_dir: Path,
     Always loads from the per-iter checkpoint saved by the AL driver:
     ``al_model_checkpoint.pt`` (AL) or ``baseline_model_checkpoint.pt``
     (random baseline). For transformer the state_dict is loaded into a
-    freshly-instantiated model whose architecture matches active_learning.py
+    freshly-instantiated model whose architecture matches pipelines/active_learning_transformer.py
     (d_model=128, nhead=4, num_layers=3, dim_feedforward=512). For GPs the
     architecture is rebuilt with the iteration's train/val data (inducing-point
     selection depends on it) using kernel/ARD/noise kwargs parsed from the
@@ -2924,7 +2924,7 @@ def main(manifest, sweep_id, output_dir, uncertainty, target, tolerances,
                            err=True)
                 X_full = None
             if X_full is not None:
-                # Static random eval set (seed-123 perm, matches active_learning.py:474)
+                # Static random eval set (seed-123 perm, matches pipelines/active_learning_transformer.py:474)
                 # The AL driver reserves the first n_samples=initial_reserved entries
                 # of the unshuffled pool for the initial AL data. With n_samples
                 # unset the entire pool is reserved -> static set is empty; in

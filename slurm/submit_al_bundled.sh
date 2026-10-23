@@ -106,7 +106,7 @@ fi
 
 # Always gpu:2 per srun to match the outer allocation. TabPFN runs AL on
 # cuda:0 and Baseline on cuda:1 concurrently via a ThreadPoolExecutor in
-# active_learning_tabpfn.py — threads share the parent's CUDA context so
+# pipelines/active_learning_tabpfn.py — threads share the parent's CUDA context so
 # both GPUs get utilised without the spawn-after-CUDA-init deadlock that an
 # earlier mp.Process implementation hit on ROCm/MI300A. Multi-node
 # --gres=gpu:1 is rejected on apu, so gpu:2 is both the useful and the only

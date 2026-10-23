@@ -7,6 +7,14 @@ and entropy-based batch selection strategies.
 Harmonized with active_learning_gp.py to use the unified pmssm package.
 """
 
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
+
 import warnings
 warnings.filterwarnings('ignore', message='.*enable_nested_tensor.*')
 
@@ -1860,7 +1868,7 @@ def main(head, testing, n_iterations, n_candidates, n_select, mc_samples, epochs
     if n_iterations > 1:
         plot_iteration_metrics(iteration_numbers, al_metrics, baseline_metrics, output_dir, logger)
 
-        from make_iteration_gifs import generate_gifs
+        from pmssm.gifs import generate_gifs
         generate_gifs(output_dir, logger=logger)
     else:
         logger.info(f"Single iteration - AL: val_loss={al_val_losses[0]:.6f}, R²={al_r2_scores[0]:.4f}")

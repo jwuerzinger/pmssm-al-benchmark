@@ -61,7 +61,7 @@ echo "[gpu] PIXI_ENV=${PIXI_ENV}"
 
 source "${REPO_ROOT}/slurm/resume_args.sh"
 
-"${PYTHON}" active_learning_gp.py \
+"${PYTHON}" pipelines/active_learning_gp.py \
     --model-type deep_gp \
     --n-samples 500 \
     --n-iterations 5 \

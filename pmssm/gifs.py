@@ -4,12 +4,10 @@ Create animated GIFs from per-iteration plots across an active learning run.
 
 Produces side-by-side AL vs Baseline comparisons for each plot type.
 
-Usage:
-    python make_iteration_gifs.py <run_dir> [--fps 2]
+Every pipeline calls ``generate_gifs`` at the end of a run. To redo the GIFs
+of an existing run directory by hand:
 
-Examples:
-    python make_iteration_gifs.py active_learning_output
-    python make_iteration_gifs.py active_learning_output --fps 1
+    python -m pmssm.gifs <run_dir> [--fps 2]
 """
 
 import argparse

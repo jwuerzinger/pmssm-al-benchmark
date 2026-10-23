@@ -4,8 +4,16 @@ Active Learning pipeline for pMSSM relic density prediction using TabPFN.
 Uses TabPFN's native predictive variance for uncertainty estimation and
 ensemble diversity (multiple random_state runs) for entropy-based batch selection.
 
-Based on active_learning.py — same loop structure, data generation, and evaluation.
+Based on active_learning_transformer.py — same loop structure, data generation, and evaluation.
 """
+
+# --- repository bootstrap: lets this file run from any directory --------------
+import sys
+from pathlib import Path
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+# ------------------------------------------------------------------------------
 
 from pathlib import Path
 from datetime import datetime
@@ -322,7 +330,7 @@ def load_config_with_sweep(config_file, sweep_index=None):
 @click.option('--target', 'target', default='DMRD',
               type=click.Choice(sorted(TARGET_CONFIG)),
               help="Observable the surrogate learns and the AL loop targets "
-                   "(default: DMRD). See active_learning.py for details.")
+                   "(default: DMRD). See active_learning_transformer.py for details.")
 @click.option('--no-mcmc-eval', is_flag=True, default=False,
               help="Ignore --mcmc-data-dir and run without an MCMC reference "
                    "set, for targets that have no posterior reference.")
@@ -1390,7 +1398,7 @@ def main(testing, n_iterations, n_candidates, n_select, n_ensemble_samples, n_da
     if n_iterations > 1:
         plot_iteration_metrics(iteration_numbers, al_metrics, baseline_metrics, output_dir, logger)
 
-        from make_iteration_gifs import generate_gifs
+        from pmssm.gifs import generate_gifs
         generate_gifs(output_dir, logger=logger)
     else:
         logger.info(f"Single iteration - AL: val_loss={al_val_losses[0]:.6f}, R²={al_r2_scores[0]:.4f}")

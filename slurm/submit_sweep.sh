@@ -13,8 +13,8 @@
 #   test_config.yaml   — 8 combinations (epochs × dropout × strategy)
 #
 # Customize via environment variables:
-#   AL_SWEEP_SCRIPT   Script to run (default: active_learning.py)
-#                       options: active_learning.py, active_learning_gp.py, active_learning_tabpfn.py
+#   AL_SWEEP_SCRIPT   Script to run (default: pipelines/active_learning_transformer.py)
+#                       options: pipelines/active_learning_transformer.py, pipelines/active_learning_gp.py, pipelines/active_learning_tabpfn.py
 #   AL_OUTPUT_DIR     Base output dir (default: sweep_output)
 #                       each task writes to <AL_OUTPUT_DIR>/task_<TASK_ID>/
 #   AL_EXTRA_ARGS     Any additional flags passed verbatim to the script
@@ -25,12 +25,12 @@
 #
 #   # GP sweep with custom config:
 #   sbatch --array=0-5 \
-#       --export=ALL,AL_SWEEP_SCRIPT=active_learning_gp.py,AL_OUTPUT_DIR=gp_sweep \
+#       --export=ALL,AL_SWEEP_SCRIPT=pipelines/active_learning_gp.py,AL_OUTPUT_DIR=gp_sweep \
 #       slurm/submit_sweep.sh my_gp_sweep.yaml
 #
 #   # TabPFN sweep:
 #   sbatch --array=0-3 \
-#       --export=ALL,AL_SWEEP_SCRIPT=active_learning_tabpfn.py \
+#       --export=ALL,AL_SWEEP_SCRIPT=pipelines/active_learning_tabpfn.py \
 #       slurm/submit_sweep.sh tabpfn_sweep.yaml
 #
 # Note: The sweep script handles all model-specific flags via the YAML config.
@@ -113,7 +113,7 @@ echo "[gpu] PIXI_ENV=${PIXI_ENV}"
 echo "[gpu] Using --gpu-ids 0 (single GPU per array task)"
 
 # ---- Output directory (one subdirectory per task) ----------------------------
-SWEEP_SCRIPT="${AL_SWEEP_SCRIPT:-active_learning.py}"
+SWEEP_SCRIPT="${AL_SWEEP_SCRIPT:-pipelines/active_learning_transformer.py}"
 BASE_OUTPUT_DIR="${AL_OUTPUT_DIR:-/ptmp/jwuerzin/output/sweep_output}"
 TASK_OUTPUT_DIR="${BASE_OUTPUT_DIR}/task_${SLURM_ARRAY_TASK_ID}"
 AL_DATA_DIR="${AL_DATA_DIR:-${CLUSTER_DATA_DIR}}"

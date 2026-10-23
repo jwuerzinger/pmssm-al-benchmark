@@ -141,7 +141,7 @@ ETA_MIN = 1e-6
 DNN_KW = dict(n_params=19, d_model=64, num_layers=4, dim_feedforward=256)
 TF_KW = dict(d_model=128, nhead=4, num_layers=3, dim_feedforward=512)
 
-# Production acquisition parameters (active_learning.py defaults).
+# Production acquisition parameters (active_learning_transformer.py defaults).
 TOLERANCE_SAMPLING = 1.0
 PROXIMITY_SAMPLING = 0.1
 N_SELECT = 500

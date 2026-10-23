@@ -71,7 +71,7 @@ echo "[gpu] PIXI_ENV=${PIXI_ENV}"
 
 source "${REPO_ROOT}/slurm/resume_args.sh"
 
-"${PYTHON}" active_learning_tabpfn.py \
+"${PYTHON}" pipelines/active_learning_tabpfn.py \
     --n-samples 500 \
     --n-iterations 5 \
     --n-select 5 \

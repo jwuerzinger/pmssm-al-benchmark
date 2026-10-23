@@ -5,7 +5,7 @@
 #
 # Usage:
 #   source "${REPO_ROOT}/slurm/resume_args.sh"
-#   "${PYTHON}" active_learning.py ... ${RESUME_ARGS}
+#   "${PYTHON}" pipelines/active_learning_transformer.py ... ${RESUME_ARGS}
 
 RESUME_ARGS=""
 if [[ -n "${AL_RESUME_FROM:-}" ]]; then

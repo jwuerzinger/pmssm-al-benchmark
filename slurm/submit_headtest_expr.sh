@@ -135,7 +135,7 @@ esac
 # in whatever the per-model script happens to respect.
 #
 # The two drivers do not take the same flags, and AL_EXTRA_ARGS is passed to
-# them verbatim: active_learning_gp.py has no --target-value and no
+# them verbatim: pipelines/active_learning_gp.py has no --target-value and no
 # --y-transform, because it reads both out of TARGET_CONFIG[target] (ExpR ->
 # true value 1.0, log transform). Passing the neural spelling to a GP is not a
 # silently wrong run but an instant "No such option" exit, which is why this is

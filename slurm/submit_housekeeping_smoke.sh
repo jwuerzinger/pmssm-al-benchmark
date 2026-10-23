@@ -67,17 +67,17 @@ if [[ "${MODE}" == "wiring" ]]; then
                    --n-samples 400 --data-dir "${POOL}" --static-eval-size 2000
                    --no-mcmc-eval --no-generate-data --seed 1 --gpu-ids 0
                    --testing --epochs 40 --no-warm-starting)
-    run_one transformer "${PYTHON}" active_learning.py "${COMMON_NEURAL[@]}" \
+    run_one transformer "${PYTHON}" pipelines/active_learning_transformer.py "${COMMON_NEURAL[@]}" \
         --output-dir "${OUT}/transformer"
-    run_one dnn "${PYTHON}" active_learning_dnn.py "${COMMON_NEURAL[@]}" \
+    run_one dnn "${PYTHON}" pipelines/active_learning_dnn.py "${COMMON_NEURAL[@]}" \
         --output-dir "${OUT}/dnn"
-    run_one gp "${PYTHON}" active_learning_gp.py \
+    run_one gp "${PYTHON}" pipelines/active_learning_gp.py \
         --target ExpR --n-iterations 2 --n-select 20 --n-candidates 2000 \
         --n-samples 400 --data-dir "${POOL}" --static-eval-size 2000 \
         --no-mcmc-eval --no-generate-data --seed 1 --gpu-ids 0 --testing \
         --model-type deep_gp --num-inducing-max 128 --epochs 40 \
         --output-dir "${OUT}/deep_gp"
-    run_one tabpfn "${PYTHON}" active_learning_tabpfn.py \
+    run_one tabpfn "${PYTHON}" pipelines/active_learning_tabpfn.py \
         --target ExpR --target-value 1.0 --n-iterations 2 --n-select 20 \
         --n-candidates 2000 --n-samples 400 --data-dir "${POOL}" \
         --static-eval-size 2000 --no-mcmc-eval --no-generate-data --seed 1 \
@@ -89,7 +89,7 @@ else
     # died at the selection step before ever reaching save_state, i.e. upstream
     # of the housekeeping call. Reproduce the production path instead: real
     # candidate counts, small n_samples so the simulator budget is bearable.
-    run_one dnn_generate "${PYTHON}" active_learning_dnn.py \
+    run_one dnn_generate "${PYTHON}" pipelines/active_learning_dnn.py \
         --target ExpR --target-value 1.0 --y-transform log \
         --n-iterations 2 --n-select 8 --n-candidates 20000 \
         --n-samples 30 --data-dir "${POOL}" --static-eval-size 2000 \

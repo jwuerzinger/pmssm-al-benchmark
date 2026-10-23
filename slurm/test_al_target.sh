@@ -64,11 +64,11 @@ esac
 AL_DATA_DIR="${AL_DATA_DIR:-${DEFAULT_DATA_DIR}}"
 
 case "${AL_DRIVER}" in
-    transformer) SCRIPT="active_learning.py";        MODEL_ARGS="--y-transform log";;
-    dnn)         SCRIPT="active_learning_dnn.py";    MODEL_ARGS="--y-transform log";;
-    deep_gp)     SCRIPT="active_learning_gp.py";     MODEL_ARGS="--model-type deep_gp --num-inducing-max 256 --kernel RBF --use-ard --learning-rate 1e-3 --jitter 1e-3";;
-    exact_gp)    SCRIPT="active_learning_gp.py";     MODEL_ARGS="--model-type exact_gp --kernel RBF --use-ard --learning-rate 1e-3 --jitter 1e-3";;
-    tabpfn)      SCRIPT="active_learning_tabpfn.py"; MODEL_ARGS="--n-ensemble-samples 8";;
+    transformer) SCRIPT="pipelines/active_learning_transformer.py";        MODEL_ARGS="--y-transform log";;
+    dnn)         SCRIPT="pipelines/active_learning_dnn.py";    MODEL_ARGS="--y-transform log";;
+    deep_gp)     SCRIPT="pipelines/active_learning_gp.py";     MODEL_ARGS="--model-type deep_gp --num-inducing-max 256 --kernel RBF --use-ard --learning-rate 1e-3 --jitter 1e-3";;
+    exact_gp)    SCRIPT="pipelines/active_learning_gp.py";     MODEL_ARGS="--model-type exact_gp --kernel RBF --use-ard --learning-rate 1e-3 --jitter 1e-3";;
+    tabpfn)      SCRIPT="pipelines/active_learning_tabpfn.py"; MODEL_ARGS="--n-ensemble-samples 8";;
     *) echo "[error] unsupported AL_DRIVER: ${AL_DRIVER}" >&2; exit 1;;
 esac
 
