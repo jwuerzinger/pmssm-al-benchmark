@@ -1,1138 +1,182 @@
-# pMSSM-trafo
+# pmssm-al-benchmark
 
-Machine learning models for predicting pMSSM (phenomenological Minimal Supersymmetric Standard Model) observables, with active learning pipelines for efficient data collection.
+Active learning for valid-model search in the electroweak pMSSM. This is the
+code behind *A bitter lesson for active learning? A systematic benchmark in the
+electroweak pMSSM* (J. Würzinger, 2026): the active-learning loop, the five
+surrogate families and six acquisition rules it compares, the SLURM machinery
+that ran the five-seed, 200-iteration campaign on two physics targets, and the
+scripts that make every figure and table of the paper and its supplementary
+material.
 
-## Table of Contents
+## What the code does
 
-- [Overview](#overview)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Models](#models)
-- [Active Learning Pipeline](#active-learning-pipeline)
-- [GP Active Learning Pipeline](#gp-active-learning-pipeline)
-- [TabPFN Active Learning Pipeline](#tabpfn-active-learning-pipeline)
-- [Batch Acquisition Strategy](#batch-acquisition-strategy)
-- [Cross-Run Analysis](#cross-run-analysis)
-- [Slurm Submission](#slurm-submission)
-- [Multi-Seed Strategy Sweep](#multi-seed-strategy-sweep)
-- [Project Structure](#project-structure)
-- [Output](#output)
-- [Multi-GPU Training](#multi-gpu-training)
-- [Documentation](#documentation)
-- [License](#license)
+An active-learning run starts from a random pool of simulated pMSSM models,
+trains a surrogate of one observable, scores a large candidate pool with the
+surrogate's uncertainty, selects a batch, labels it with the physics chain
+(SPheno, micrOMEGAs and, for the exclusion target, SModelS, driven through the
+`Run3ModelGen` submodule), adds the labelled points to the training set and
+repeats. A random-sampling baseline is trained alongside on the same budget.
+Every iteration leaves a checkpoint, so runs resume and the campaign can be
+chased to a fixed number of iterations across many 24 h jobs.
 
-## Overview
+- **Surrogates** (one pipeline each under `pipelines/`): an MC-dropout
+  transformer, an MC-dropout feed-forward network (and a width-matched
+  variant), exact and deep Gaussian processes, and TabPFN used in context.
+- **Targets** (`--target`): the dark-matter relic density `DMRD`
+  (Ω h² = 0.12) and the LHC exclusion ratio `ExpR` (SModelS best expected r
+  = 1). Both boundaries sit at zero in training space. `doc/TARGETS.md`.
+- **Acquisition**: a tolerance cut and proximity weighting around the
+  boundary, then `top_k`, `entropy_batch` (a diverse batch from the predictive
+  covariance), `tol_only_random`, or the classification-head scores
+  `cls_entropy` and `bald`; the surrogate's output can be a regression of
+  log(Y / Y₀) or a classifier of the verdict. `doc/ACQUISITION.md`.
+- **Inputs**: the ntuples carry 19 pMSSM parameters, of which 10 are fixed at
+  the values of the ATLAS Run 2 electroweak scan and 9 are free: the slepton
+  masses `meL`, `meR`, the gaugino and higgsino masses `M_1`, `M_2`, `mu`, the
+  trilinears `At`, `Ab`, `Atau`, and `tanb`. Ranges live in `pmssm/config.py`.
 
-This project trains and compares neural network and Gaussian Process architectures to predict dark matter relic density (Ωh²) and other observables from 19 pMSSM input parameters. Two active learning pipelines intelligently select the most informative parameter points for expensive physics simulations (SPheno + micromegas).
+## Layout
 
-### Input Parameters (19 features)
-- Slepton masses: `meL`, `meR`, `mtauL`, `mtauR`
-- Squark masses: `mqL1`, `muR`, `mdR`, `mqL3`, `mtR`, `mbR`
-- Gaugino masses: `M_1`, `M_2`, `M_3`
-- Higgsino mass: `mu`
-- Trilinear couplings: `At`, `Ab`, `Atau`
-- Higgs sector: `mA`, `tanb`
+```
+pipelines/   the four active-learning entry points (transformer, DNN, GP, TabPFN)
+pmssm/       the library: data, models, heads, selection, uncertainty, training,
+             evaluation, resume, iteration housekeeping, paths
+scripts/     figures/ analysis/ campaign/ experiments/  (scripts/README.md lists each)
+slurm/       al/ campaign/ analysis/ smoke/ experiments/ batch scripts (slurm/README.md)
+tests/       package tests and the layout guard (tests/check_repo_layout.py)
+doc/         the guides listed at the end of this file; doc/history/ holds old design records
+Run3ModelGen/, al_pmssmwithgp/   submodules: the physics chain, the GP model code
+```
 
-### Output
-- Dark matter relic density: Ωh²
+Every script runs by path from any directory; the first statement of each
+file puts the repository root on `sys.path`, and scripts import each other as
+`scripts.<folder>.<module>`. No installation step is needed beyond the
+environment.
 
 ## Installation
 
-This project uses [pixi](https://pixi.sh/) for dependency management.
+```bash
+git clone --recurse-submodules git@github.com:jwuerzinger/pmssm-al-benchmark.git
+cd pmssm-al-benchmark
+pixi install -e rocm        # AMD MI300A; `-e cuda` for NVIDIA
+```
+
+`pixi.lock` pins the environment that produced the paper. The ROCm feature
+installs PyTorch from the ROCm wheel index and resolves `pytorch-triton-rocm`
+against the stub wheels in `stubs/`.
+
+Then:
+
+1. **Run3ModelGen.** The submodule is hosted on CERN's GitLab
+   (`ssh://git@gitlab.cern.ch:7999/jwuerzin/Run3ModelGen.git`) and needs a CERN
+   account to fetch. Build it following its own README (`cd Run3ModelGen &&
+   pixi run build`); the loop launches its `genModels.py` workers from that
+   environment. Nothing else in this repository is required for the analysis
+   scripts, which only read finished runs.
+2. **Cluster configuration.** `cp slurm/cluster.conf.template slurm/cluster.conf`
+   and edit it: partitions, GPU gres strings, the pixi environment name, the
+   data, output, analysis and archive roots, the SModelS database directory
+   and, for TabPFN, the licence token. The batch scripts and `pmssm/paths.py`
+   read the same values, so this is the one place paths are set.
+3. **Data.** The random pools, the emcee reference posterior and the SModelS
+   database are not part of the repository; `doc/DATA.md` says what they are,
+   where the code expects them and how they were made.
+
+## Quick start
+
+A short loop without the physics chain (selection only, no labelling):
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd pMSSM-trafo
-
-# Install dependencies
-pixi install
+pixi run -e rocm al-transformer -- --testing --n-iterations 3 --no-generate-data \
+    --data-dir /path/to/pool --no-mcmc-eval --output-dir /tmp/al_smoke
 ```
 
-### Requirements
-- CUDA 12.6+ or ROCm 6.x (AMD MI300A tested)
-- Python 3.12+
-- PyTorch (GPU)
-
-## Quick Start
-
-### Basic Training
-
-```bash
-# Full training (all data, 2000 epochs)
-pixi run python train_pmssm.py
-
-# Quick test run (limited data)
-pixi run python train_pmssm.py --testing
-
-# Custom epochs
-pixi run python train_pmssm.py --epochs 1000
-```
-
-### Advanced Options
-
-```bash
-# Control data loading
-pixi run python train_pmssm.py --n-datasets 5 --n-samples 100
-
-# Enable early stopping
-pixi run python train_pmssm.py --early-stopping --patience 500
-
-# Force sequential training (disable multi-GPU parallel training)
-pixi run python train_pmssm.py --no-parallel
-```
-
-### Interactive Shell
-
-Alternatively, activate the pixi environment for an interactive session:
-
-```bash
-pixi shell
-python train_pmssm.py --testing
-```
-
-## Models
-
-Three neural network architectures are trained and compared:
-
-### 1. PMSSMTransformer
-Standard transformer with CLS token pooling.
-- Pre-normalization architecture for better gradient flow
-- Learnable positional encodings
-- 3-layer regression head
-
-### 2. PMSSMTransformerTabular
-Transformer designed specifically for tabular data.
-- Individual learned embeddings per feature
-- Attention pooling instead of CLS token
-- Better suited for non-sequential data
-
-### 3. PMSSMFeedForward (MLP Baseline)
-Multi-layer perceptron for comparison.
-- Feature embedding layer
-- 4-layer fully connected network
-- Typically performs best on tabular regression tasks
-
-> **Architecture diagram**: Regenerate `doc/transformer_architecture.png` (PMSSMTransformerTabular block diagram) with `python scripts/plot_transformer_architecture.py`.
-
-## Active Learning Pipeline
-
-In addition to standard training, this project includes an **active learning pipeline** that intelligently selects the most informative pMSSM points for expensive physics simulations, significantly improving model performance with fewer samples.
-
-### Why Active Learning?
-
-- **Simulation Cost**: Each pMSSM point requires running SPheno + micromegas (computationally expensive)
-- **High-Dimensional Space**: The 19-dimensional parameter space cannot be densely sampled
-- **Efficient Learning**: Select points where the model is most uncertain to maximize information gain
-
-### Quick Start
-
-```bash
-# Testing mode (quick verification, 3 min)
-bash run_active_learning_medium_test.sh
-
-# 1-hour test with 50k samples, log transformation
-bash run_active_learning_1h.sh
-
-# Full active learning with automatic data generation
-pixi run python active_learning.py \
-    --y-transform log \
-    --n-iterations 10 \
-    --n-candidates 10000 \
-    --n-select 1000 \
-    --generate-data \
-    --epochs 2000
-
-# Without data generation (just point selection)
-pixi run python active_learning.py \
-    --y-transform log \
-    --n-iterations 5 \
-    --n-candidates 5000 \
-    --n-select 100
-```
-
-### Key Features
-
-1. **Log Transformation** (NEW): Trains in log space matching GP pipeline for fair comparison
-2. **Baseline Comparison**: Trains both active learning and random baseline models in parallel
-3. **MC Dropout Uncertainty**: Uses Monte Carlo Dropout for uncertainty estimation
-4. **Data Quality Checks**: Automatic detection of duplicates, leakage, and contamination
-5. **Contamination-Free**: Strict separation between AL and baseline datasets
-6. **Comprehensive Tracking**: Logs losses, R² scores, and dataset sizes across iterations
-7. **Consistent R² Calculation**: Always computed in physical space regardless of training space
-
-### Acquisition Heads
-
-The surrogate's single output has a *meaning*, and that meaning is selectable.
-The head decides the training target, the loss, and how MC samples become an
-acquisition score; see `pmssm/heads.py`.
-
-| head | trains on | loss | acquisition scores |
-|---|---|---|---|
-| `regression` (default) | `t = log(Y / true_value)` | MSE | predictive variance (with the tolerance cut and proximity weighting of the selector) |
-| `classification` | `1[t > 0]` | BCE with logits | `entropy` = H[p̄] of the mean probability ("committee nearest 0.5"), `bald` = H[p̄] − E H[p] (epistemic only) |
-
-`regression` is the production path and is bit-identical to the behaviour before
-heads existed; passing no head selects it. The classification head exists to test
-the framing the BSM active-learning literature uses, which trains a classifier of
-a discrete label rather than regressing the observable.
-
-**Diagnostics work for every head.** Each head keeps one scalar output and the
-same decision point (output > 0, since a logit is positive exactly when p > 0.5),
-so the per-iteration accuracy diagnostics need no change: `plot_hit_rate_trajectories_multiseed.py --compute-accuracy`
-thresholds transformed-space output at zero and is head-agnostic by construction.
-Uncertainty diagnostics that only *rank* sigma (Spearman rho, AUSE) also transfer.
-What does not transfer is any metric that reads the output as a *value* of `t`
-(MSE, R², NLPD, CRPS, physical-space inversion): those are reported as `None`
-rather than as plausible-looking wrong numbers, and `plot_mse_trajectories_multiseed.py`
-skips such runs by name. `pmssm.heads.head_for_run` recovers a run's head from its
-`summary.json`, defaulting to `regression` for every run made before heads existed.
-
-Adding a head means adding one class in `pmssm/heads.py` and registering it;
-`select_points(strategy='head_score', score=...)` already ranks by whatever the
-head produces, so no new selector is needed.
-
-### Pipeline Stages
-
-```
-for each iteration:
-    1. Train AL model on current dataset
-    2. Train baseline model on random samples (for comparison)
-    3. Generate candidate pool via Latin Hypercube Sampling
-    4. Score candidates using uncertainty + proximity weighting
-    5. Select batch via iterative entropy-based selection (see below)
-    6. [Optional] Generate new models via Run3ModelGen
-    7. Add generated data to AL training set
-```
-
-See [Batch Acquisition Strategy](#batch-acquisition-strategy) for details on steps 3-5.
-
-### Output
-
-```
-active_learning_output/
-├── active_learning.log          # Main pipeline log
-├── iteration_001/
-│   ├── selected_points.csv      # Selected points with uncertainty
-│   ├── al_training.log          # AL model log
-│   ├── baseline_training.log    # Baseline model log
-│   ├── plots/
-│   │   ├── al/                  # AL diagnostic plots
-│   │   └── baseline/            # Baseline diagnostic plots
-│   └── scan/                    # [If --generate-data] Generated models
-├── iteration_002/...
-├── plots/
-│   └── iteration_metrics.png    # AL vs Baseline comparison
-└── summary.json                 # All results and configuration
-```
-
-### Comparison Plots
-
-The pipeline automatically generates comparison plots showing:
-- **Loss curves**: Train/validation loss for both AL and baseline
-- **R² scores**: Model performance across iterations
-- **Dataset sizes**: Growth of training/validation sets
-
-### Integration with Run3ModelGen
-
-Use `--generate-data` to automatically generate new pMSSM models:
-
-```bash
-# Requires Run3ModelGen submodule
-git submodule update --init
-cd Run3ModelGen && pixi run build && cd ..
-
-# Run with automatic data generation
-pixi run python active_learning.py --generate-data --n-iterations 10
-```
-
-### Documentation
-
-See [doc/active_learning_plan.md](doc/active_learning_plan.md) for detailed algorithm description and CLI reference.
-
-## GP Active Learning Pipeline
-
-An alternative active learning pipeline using Gaussian Process models for native uncertainty estimation (no MC Dropout needed).
-
-⚠️ **Important**: GP and Transformer pipelines use **different input normalization**:
-- **Transformer**: Z-score normalization `(X - mean) / std` → centered at 0, unit variance
-- **GP**: Min-max normalization `(X - min) / (max - min)` → scaled to [0, 1]
-
-This means models see the **same physical points in different normalized spaces**, which affects kernel/embedding behavior and uncertainty estimates. Both use the same log-space target transformation. See [Implementation Details](doc/IMPLEMENTATION_DETAILS.md#key-pipeline-differences) for full analysis.
-
-### Models
-
-| Model | Uncertainty | Use Case |
-|-------|-----------|----------|
-| ExactGP | GP posterior variance | Default, best for <10k samples |
-| DeepGP | Deep GP posterior | Larger datasets |
-| SparseGP | Variational GP with inducing points | Scalable to large datasets |
-| MLP | None (random fallback) | Comparison baseline |
-
-### Quick Start
-
-```bash
-# Quick test (3 min)
-bash run_active_learning_gp_medium_test.sh
-
-# 1-hour test with 50k samples
-bash run_active_learning_gp_1h.sh
-
-# Full run with entropy-based batch selection (default)
-python active_learning_gp.py \
-    --n-iterations 10 \
-    --n-samples 100000 \
-    --generate-data
-
-# Simpler top-K variance selection
-python active_learning_gp.py \
-    --selection-strategy top_k \
-    --n-iterations 10
-
-# Production run
-bash run_active_learning_gp.sh
-```
-
-### Key Features
-
-1. **Native GP Uncertainty**: No MC Dropout needed - uses posterior variance directly
-2. **Log Transformation**: Trains in log space: `log(Y / 0.12)` for DMRD target
-3. **Entropy-Based Batch Selection** (default): LHS candidate sampling, threshold filtering, Gibbs sampling for diverse batches
-4. **Early Stopping**: Patience 200 on validation loss (configurable via `--patience`, disable with `--no-early-stopping`)
-5. **Multiple Targets**: DMRD (relic density), CrossSection, CLs via `--target`
-6. **Comprehensive Metrics**: Accuracy, chi2, pulls, weighted accuracy via `--compute-full-metrics`
-7. **ARD Lengthscale Tracking**: Per-iteration lengthscale CSV via `--track-lengthscales`
-8. **Parallel Training**: AL and baseline models on separate GPUs
-9. **YAML Config + SLURM Sweeps**: `--config-file sweep.yaml --sweep-index $SLURM_ARRAY_TASK_ID`
-
-### ⚠️ Pipeline Comparison: Pre-filtering Strategies
-
-GP and Transformer pipelines use **different pre-filtering strategies** due to computational constraints:
-
-| Pipeline | Strategy | Reason |
-|----------|----------|--------|
-| **GP** | `--tolerance-sampling` (value-based) | Can evaluate 1M candidates cheaply (single forward pass per point) |
-| **Transformer** | `--entropy-pool-size` (uncertainty-based) | MC Dropout requires 30× forward passes - limits candidate pool to ~50k |
-
-**Key insight**: GP gets mean + variance from a single forward pass (analytical), while Transformer needs 30 MC Dropout samples to estimate uncertainty. This makes evaluating 1M candidates 30× more expensive for Transformer.
-
-Both approaches achieve similar goals but are optimized for their computational profiles. See [IMPLEMENTATION_DETAILS.md](doc/IMPLEMENTATION_DETAILS.md#pre-filtering-strategies) for detailed explanation.
-
-### Training Configuration
-
-| Setting | Default | CLI Option |
-|---------|---------|------------|
-| Max training epochs | 2000 | `--epochs` |
-| Early stopping | On | `--early-stopping/--no-early-stopping` |
-| Patience | 200 | `--patience` |
-| Learning rate | 1e-3 | `--learning-rate` |
-| Selection | entropy_batch | `--selection-strategy` |
-| Kernel | RBF with ARD | `--kernel`, `--use-ard` |
-
-### Advanced Features
-
-Both pipelines support several advanced capabilities for production workflows:
-
-#### Config Files & Parameter Sweeps
-Use YAML configuration files for systematic hyperparameter exploration:
-
-```bash
-# Create a sweep configuration
-cat > sweep_config.yaml <<EOF
-epochs: [1000, 2000, 5000]
-dropout: [0.1, 0.15, 0.2]
-# Total: 3 × 3 = 9 combinations
-EOF
-
-# Run specific combination
-python active_learning.py --config-file sweep_config.yaml --sweep-index 0
-
-# Or with SLURM array jobs
-#SBATCH --array=0-8
-python active_learning.py --config-file sweep_config.yaml --sweep-index $SLURM_ARRAY_TASK_ID
-```
-
-See [run_active_learning_with_config.sh](run_active_learning_with_config.sh) for a complete example.
-
-#### Warm Starting (Default: Enabled)
-Resume training from previous iteration checkpoints for faster convergence:
-
-```bash
-# Enabled by default
-python active_learning.py --warm-starting
-
-# Train from scratch each iteration
-python active_learning.py --no-warm-starting
-```
-
-#### Early Stopping (Default: Enabled)
-Automatically stop training when validation loss plateaus:
-
-```bash
-# Default: enabled with patience=200
-python active_learning.py --early-stopping --patience 200
-
-# Disable to see full training curves
-python active_learning.py --no-early-stopping
-```
-
-#### External Evaluation Dataset
-Evaluate models on a separate held-out dataset:
-
-```bash
-python active_learning.py \
-    --eval-data-path /path/to/eval_data.root \
-    --compute-full-metrics
-```
-
-#### Comprehensive Metrics
-Compute full evaluation suite (accuracy, MSE, RMSE, chi², pulls):
-
-```bash
-python active_learning.py --compute-full-metrics
-```
-
-### Output
-
-```
-active_learning_gp_output/
-├── active_learning.log
-├── iteration_001/
-│   ├── selected_points.csv
-│   ├── model_checkpoint.pt
-│   ├── plots/{al,baseline}/     # Losses, scatter, histogram, random predictions
-│   └── scan/                    # [If --generate-data]
-├── plots/iteration_metrics.png  # AL vs Baseline comparison
-├── lengthscales.csv             # [If --track-lengthscales]
-└── summary.json
-```
-
-### Documentation
-
-See [doc/gp_integration_plan.md](doc/gp_integration_plan.md) for progress tracking and [doc/gp_pipeline_comparison.md](doc/gp_pipeline_comparison.md) for full feature reference and CLI options.
-
-## TabPFN Active Learning Pipeline
-
-A third pipeline using [TabPFN](https://github.com/PriorLabs/TabPFN) (Tabular Prior-Fitted Network), a pre-trained foundation model for tabular data. Unlike the transformer and GP pipelines, TabPFN requires no per-iteration training -- it performs in-context learning at inference time.
-
-### Key Differences from GP/Transformer
-
-| Aspect | TabPFN | Transformer / GP |
-|--------|--------|-----------------|
-| Training | None (pre-trained) | Per-iteration training with early stopping |
-| Uncertainty | Ensemble of 16 forward passes | MC Dropout / GP posterior |
-| GPU usage | Single GPU | 1-2 GPUs (parallel AL + baseline) |
-| Warm starting | N/A | Enabled by default |
-
-### Quick Start
-
-```bash
-# Production run (requires TABPFN_TOKEN)
-export TABPFN_TOKEN="<your-api-key>"
-python active_learning_tabpfn.py \
-    --n-iterations 40 \
-    --n-candidates 1000000 \
-    --n-select 500 \
-    --generate-data
-```
-
-### Documentation
-
-See [doc/CLI_REFERENCE.md](doc/CLI_REFERENCE.md) for TabPFN-specific options.
-
-## Batch Acquisition Strategy
-
-Both pipelines choose informative points for simulation via a shared pre-filter stack, then pick via one of two selection strategies: `top_k` (greedy) or `entropy_batch` (diverse). The default is `entropy_batch` for the Transformer and GP pipelines, and `top_k` for the TabPFN pipeline — see the note under Stage 3 for why.
-
-### Stage 1: Uncertainty Estimation
-
-| Pipeline | Method | How It Works |
-|----------|--------|-------------|
-| **Transformer** | MC Dropout | Run T stochastic forward passes (default T=30) with dropout active; uncertainty = variance across passes |
-| **TabPFN** | Native predictive variance | Variance of TabPFN's Bayesian in-context predictive distribution |
-| **GP** | Posterior variance | Single forward pass through the GP likelihood gives analytical mean and variance |
-
-### Stage 2: Candidate Pre-filtering (applied by **both** selection strategies)
-
-1. **Candidate generation**: A pool of `n_candidates` points (default 20,000) is generated via Latin Hypercube Sampling across the 19D parameter space.
-
-2. **Tolerance cut** (`--tolerance-sampling`, default 1.0): A **hard cut** that keeps only candidates whose predicted target lies within `[threshold − tol, threshold + tol]` in transformed space. With the default `log(Y/0.12)` transform and `tol=1.0`, the cut is `|log(Y/0.12)| < 1`, i.e. a multiplicative window of `e ≈ 2.718` around the observed relic density: `Y ∈ [0.12/e, 0.12·e] ≈ [0.044, 0.326]`. Note this is symmetric in log space and therefore asymmetric in physical space (the upper arm reaches further above 0.12 than the lower arm reaches below). Candidates the model extrapolates as overclosing (Y ≫ 0.12) or far-sub-dominant are dropped outright. Set to 0 to disable.
-
-   > **Note:** applied by *both* `top_k` and `entropy_batch` as of the current version. Previously only `entropy_batch` honored it.
-
-3. **Proximity weighting** (`--proximity-sampling`, default 0.1): A **soft** Gaussian weight on the surviving candidates' variances:
-
-   ```
-   proximity = exp(-((pred_mean - threshold)^2) / sigma)
-   weighted_variance = proximity * variance
-   ```
-
-   Candidates further from the target get down-weighted but not eliminated. Set to 0 to disable.
-
-4. **Focused pool** (entropy_batch only, `--entropy-pool-size`): The top `n_pool` candidates by weighted variance are retained to reduce the downstream covariance computation:
-
-   | Pipeline | Default pool size | Reason |
-   |----------|-------------------|--------|
-   | **GP** | 1M candidates evaluated, filtered near threshold | Single forward pass per point (cheap) |
-   | **Transformer / TabPFN** | 1,500–5,000 | MC Dropout / ensemble requires multiple forward passes (expensive) |
-
-### Stage 3: Selection Strategy
-
-Two strategies operate on the pre-filtered pool from Stage 2. Both honor the tolerance cut and proximity weighting; they differ only in the batch-construction step.
-
-#### `top_k` — greedy variance ranking
-
-After tolerance + proximity, sort survivors by weighted variance and take the top `n_select`. No diversity: if several high-uncertainty candidates cluster in one region, they all get picked. Cheap and simple; appropriate when the filters have already narrowed the pool well.
-
-Implemented in `select_top_uncertain_filtered` ([pmssm/selection.py](pmssm/selection.py)).
-
-#### `entropy_batch` — iterative diverse batch (default for Transformer and GP)
-
-Selects `n_select` points that are jointly informative — not just individually uncertain, but diverse relative to each other.
-
-> **Note on TabPFN**: The TabPFN pipeline defaults to `top_k`, not `entropy_batch`. `entropy_batch` needs a full `T × n_pool` MC-dropout / ensemble prediction tensor to build the sample covariance, which is prohibitively expensive with TabPFN's in-context ensembles — in practice only a handful of iterations complete within a reasonable wall-clock budget. Use `--selection-strategy entropy_batch` explicitly if you want to pay the cost; otherwise the `top_k` path (which still applies the shared tolerance cut and proximity weighting) is recommended.
-
-**Building the covariance matrix** over the focused pool:
-- *Transformer*: Sample covariance from T MC Dropout predictions: `C = (X - X̄)^T (X - X̄) / (T - 1)`
-- *GP*: Full posterior covariance from the GP likelihood
-
-**Iterative selection** (implemented in `EntropySelectionStrategy`):
-
-1. Compute the smoothed entropy for each candidate individually. Select the candidate with the highest entropy as the first point.
-
-2. For each remaining slot in the batch:
-   - For every unselected candidate, compute the **conditional batch entropy** — the information gain from adding that candidate *given the already-selected set*. This uses block matrix conditioning on the joint covariance:
-     ```
-     Cov = [[C_selected,  C_cross ],
-            [C_cross^T,   C_new   ]]
-     ```
-   - The batch entropy formula is: `log|Sigma + I| - log|Sigma + 2I| + n * log(2)`
-   - Select the next point via **Gibbs sampling** with temperature beta (default 50, quasi-deterministic).
-
-3. Repeat until `n_select` points are chosen.
-
-**Why this ensures diversity**: After selecting a point, its contribution to the joint uncertainty is "used up" — nearby candidates with correlated predictions see their conditional entropy reduced. The algorithm naturally spreads selections across the uncertainty landscape rather than clustering them in a single high-variance region.
-
-### Acquisition Hyperparameters
-
-| Parameter | Default | CLI Flag | Description |
-|-----------|---------|----------|-------------|
-| Selection strategy | `entropy_batch` (Transformer, GP); `top_k` (TabPFN, for cost reasons) | `--selection-strategy` | `entropy_batch` (diverse) or `top_k` (greedy) |
-| MC samples | 30 | `--mc-samples` | Forward passes for MC Dropout uncertainty |
-| Candidates | 20,000 | `--n-candidates` | LHS candidate pool size |
-| Points per iteration | 10 | `--n-select` | Batch size to select |
-| Entropy pool size | 1,500 | `--entropy-pool-size` | Pre-filtered pool for covariance (Transformer) |
-| Proximity sampling | 0.1 | `--proximity-sampling` | Gaussian width for threshold focus (0 = disabled) |
-| Entropy blur | 0.15 | `--entropy-blur` | Smoothing for numerical stability |
-| Entropy beta | 50.0 | `--entropy-beta` | Gibbs temperature (higher = more deterministic) |
-| Tolerance sampling | 1.0 | `--tolerance-sampling` | Value-based hard pre-filter width (both `top_k` and `entropy_batch`; 0 = disabled) |
-
-See [Implementation Details](doc/IMPLEMENTATION_DETAILS.md) for proximity weighting analysis and pre-filtering strategy comparison.
-
-## Cross-Run Analysis
-
-`analyse_runs.py` loads completed run checkpoints (`state.pt`) and computes quality, physical property, and diversity metrics across multiple runs. The wrapper script `run_analysis.sh` orchestrates predefined comparisons (strategy, model type, parallelism).
-
-```bash
-# Run all predefined comparisons
-bash run_analysis.sh
-
-# Or run a custom comparison directly
-python analyse_runs.py \
-    --run-dirs /path/to/run_a /path/to/run_b \
-    --labels "Run A" "Run B" \
-    --mcmc-data-dir /path/to/mcmc_data \
-    --output-dir my_analysis
-```
-
-**Outputs**: 8 PNG plots (R² trajectories, hit rate, diversity summary, parameter heatmaps, pairwise scatter) and a `summary.csv` with all scalar metrics and bootstrap uncertainties.
-
-See [doc/ANALYSIS_METRICS.md](doc/ANALYSIS_METRICS.md) for a full description of all metrics, their interpretation, and CLI options.
-
-### Plot filename → script reference
-
-Every PNG under `analysis/all_runs/` (and equivalent output dirs) comes from one of the scripts below. Use this table to answer "which script made this plot?" for any file you see.
-
-| Filename pattern | Produced by |
-|---|---|
-| `hit_rate_best_per_model.png` · `hits_per_desired_best_per_model.png` | `scripts/plot_hit_rate_trajectories_multiseed.py` |
-| `hit_rate_strategy_<strategy>.png` · `hits_per_desired_strategy_<strategy>.png` | ↑ same |
-| `hit_rate_model_<model>.png` · `hits_per_desired_model_<model>.png` | ↑ same |
-| `hit_rate_oracle_comparison.png` · `hits_per_desired_oracle_comparison.png` | ↑ same |
-| `accuracy_best_per_model_<ds>.png` (`ds` ∈ `static_random`, `mcmc`, `train`, `val`) | ↑ same, with `--compute-accuracy` |
-| `accuracy_oracle_comparison_<ds>.png` | ↑ same |
-| `data_efficiency_best_per_model.json` · `scan_efficiency_improvement.json` · `random_baseline_prevalence.json` | ↑ same (byproducts) |
-| `hit_rate_seeds_<cfg>.png` · `hits_per_desired_seeds_<cfg>.png` | `scripts/plot_hit_rate_seeds_per_model.py` |
-| `iteration_metrics.png` · `iteration_metrics_seeds_<cfg>.png` · `iteration_metrics_progress.png` | `scripts/plot_iteration_metrics_seeds.py` |
-| `r2_trajectories.png` · `static_r2_*.png` · `val_r2_*.png` | `scripts/plot_r2_trajectories_multiseed.py` (and `analyse_runs.py` for `r2_trajectories.png`) |
-| `r2_mcmc_*.png` | `scripts/plot_r2_mcmc_trajectories_multiseed.py` |
-| `mmd2_*.png` | `scripts/plot_mmd2_trajectories_multiseed.py` |
-| `pairwise_density_<model>_<strat>_<warm>[_rawmcmc].png` | `scripts/plot_pairwise_input_summary.py` |
-| `uq_reliability_<ds>.png` · `uq_sigma_trajectory_<ds>.png` · `uq_sparsification_<ds>.png` · `uq_evaluation.json` | `scripts/evaluate_uq.py` |
-| `mse_best_per_model.png` | `scripts/plot_mse_trajectories_multiseed.py` |
-| `omega_vs_<param>_lsp_type.png` | `scripts/plot_omega_vs_m2_lsp.py` |
-| `compute_vs_dataset[_warm|_cold].png` · `compute_per_iteration.png` | `scripts/plot_compute_vs_dataset.py` |
-| `coverage_saturation.png` · `coverage_saturation.json` | `scripts/coverage_saturation.py` |
-| `rank/rank_<model>.png` · `rank/rank_ecdf_<model>.png` · `rank/rank_uniformity_al.json` | `scripts/rank_uniformity_al.py` (thin driver over Run3ModelGen's `emcee_diagnostics`; run `--export-only` with the torch env first, then the Run3ModelGen env) |
-| `pairwise_scatter.png` · `quality_summary.png` · `diversity_summary.png` · `param_variance_heatmap.png` · `param_entropy_heatmap.png` · `relic_density_summary.png` · `hist_dataset.png` | `analyse_runs.py` |
-| GIFs under any `<run>/gifs/` directory (`scatterplots.gif`, `losses.gif`, `true_vs_pred_*.gif`, …) | `make_iteration_gifs.py`, invoked automatically at the end of every AL run |
-
-### MCMC convergence diagnostics
-
-```bash
-# emcee-era ntuples (one 256-walker ensemble per ROOT file):
-python scripts/mcmc_diagnostics.py --data-dir /ptmp/jwuerzin/data/neutralino_v4 --mcmc-nwalkers 256
-python scripts/mcmc_diagnostics.py --data-dir /path/to/output --params M_1,M_2,mu,tanb
-```
-
-Standalone helper that computes split-R̂ (Gelman-Rubin with Vehtari et al. 2021 splitting) and bulk-ESS for each free parameter. By default each ROOT file in the input directory is one chain; with `--mcmc-nwalkers N` each file is treated as an emcee ensemble stored iteration-major/walker-minor and split into N walker-chains (use 256 for `neutralino_v4`). Pass/fail thresholds: R̂ < 1.01 (well-converged), R̂ < 1.05 (acceptable). Self-contained — only needs `numpy`, `uproot`, and (optional) `arviz`.
-
-### Corner plots and input-vs-target diagnostics
-
-```bash
-python scripts/plot_al_input_target_diagnostics.py \
-    --output-dir /ptmp/jwuerzin/analysis/all_runs/al_diag/ \
-    --require-neutralino-lsp
-```
-
-Ports the array-based plotting helpers from Run3ModelGen's emcee diagnostics to AL runs: for each best-per-model cell of the sweep it pools the seeds' cumulative training sets and writes `corner_<model>.png` (9 free-parameter corner plot with the Ω marginal inset) plus `<param>_vs_Omega_<model>.png` scatter/histogram panels, and renders `corner_mcmc.png` for the MCMC reference in identical styling. `--models deep_gp,transformer` restricts the cells; `--skip-joint-plots` renders corners only.
-
-### Yield comparison: AL vs MCMC vs random (paper Table `tab:yield`)
-
-```bash
-python scripts/compute_yield_comparison.py --require-neutralino-lsp \
-    --output-dir /ptmp/jwuerzin/analysis/all_runs/
-```
-
-Computes the number of **distinct** models inside the ±10 % tolerance band per simulator evaluation for the random scan (band prevalence × p_valid), the emcee MCMC reference (distinct in-band `(M_1, M_2, mu)` states ÷ total proposals, burn-in included; proposal counts parsed from `diag/diagnostics.txt`), and each best-per-model AL cell (final cumulative hits/desired in attempt units). Prints the table and writes `yield_comparison.json`.
-
-### Prior-predictive / importance-sampling check of the MCMC reference
-
-```bash
-python scripts/prior_predictive_check.py
-```
-
-The random pool is a prior predictive sample for the emcee reference (same
-flat prior, box, and filters), so reweighting it by the Gaussian relic
-likelihood gives a self-normalised importance-sampling (SNIS) posterior
-estimate with uniform mode coverage — an independent validation of the
-formally unconverged reference that catches what R̂ cannot (missed modes).
-Reports SNIS ESS, prior-predictive band fractions, per-parameter
-prior→posterior contraction and KL (bits), weighted KS / W1 distances
-between SNIS and emcee marginals, Ω moments, and the funnel-share
-cross-check. Writes `prior_predictive_check.json` +
-`prior_predictive_marginals.png`.
-
-### Uncertainty-quantification evaluation
-
-```bash
-# Full pass on a GPU node (12 h budget; caches make re-runs near-instant):
-sbatch --partition="${CLUSTER_PARTITION}" --gres=gpu:1 --export=ALL,VETO=1 slurm/submit_uq_eval.sh
-# CPU smoke test:
-python scripts/evaluate_uq.py --models deep_gp --seeds 1 --iter-step 40 \
-    --eval-size 2000 --skip-tabpfn
-```
-
-`scripts/evaluate_uq.py` scores each best-per-model pick's *predictive
-distribution* post hoc from the per-iteration checkpoints (TabPFN: in-context
-re-fit from `state.pt`), on seeded static-random and MCMC eval sets, in
-transformed target space. Per (cell, seed, iteration, eval set) it reports
-calibration (z-statistics, PIT central-interval coverage, miscalibration
-area), proper scores (NLPD, CRPS — closed form for Gaussian/mixture families,
-sample/pinball estimators for dropout/quantile families), ranking quality
-(Spearman ρ(σ, |error|), AUSE sparsification), sharpness (mean σ; its
-iteration trajectory is the epistemic-shrinkage test), and for the Deep GP
-the within/between likelihood-sample variance decomposition.
-`--mc-samples 30,100` ablates the dropout pass count. Outputs:
-`uq_evaluation.json`, `uq_reliability_<ds>.png`, `uq_sigma_trajectory_<ds>.png`,
-`uq_sparsification_<ds>.png`; per-run cache `uq_eval_cache.json`.
-
-## Slurm Submission
-
-Slurm job scripts live in `slurm/` and read cluster-specific settings (partition, GPU gres) from `slurm/cluster.conf`:
-
-```bash
-# One-time setup
-cp slurm/cluster.conf.template slurm/cluster.conf
-# Edit cluster.conf for your cluster
-
-# Submit a 2-GPU GP job
-source slurm/cluster.conf
-sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_2}" slurm/submit_al_gp_exact.sh
-
-# Resume a timed-out run (+24 more iterations)
-bash resume_slurm.sh slurm/submit_al_transformer_top_k_20k.sh /ptmp/output/previous_run 24
-```
-
-Available job scripts: `submit_al_transformer.sh`, `submit_al_transformer_top_k.sh`, `submit_al_transformer_top_k_20k.sh`, `submit_al_gp_exact.sh`, `submit_al_gp_exact_top_k.sh`, `submit_al_gp_deep.sh`, `submit_al_gp_deep_top_k.sh`, `submit_al_tabpfn.sh`, `submit_al_tabpfn_entropy.sh`. All parameters can be overridden via environment variables (see script headers for details).
-
-## Target axes (`--target`)
-
-The pipeline learns one observable at a time, selected with `--target` on every
-driver and defined once in `TARGET_CONFIG` (`pmssm/config.py`). Two targets are
-in production use:
-
-| `--target` | Observable | Branch | Boundary | Pool |
-|---|---|---|---|---|
-| `DMRD` (default) | dark matter relic density Ω h² | `MO_Omega` | 0.12 | `/ptmp/jwuerzin/data/18387358` |
-| `ExpR` | SModelS best expected r-value (LHC exclusion) | `SModelS_bestExpR_r_expected` | 1.0 | `/ptmp/jwuerzin/data/260804` |
-
-Both boundaries sit at 0 in training space, because `transform_y` computes
-`log(Y / true_value)`. So the acquisition machinery (`--tolerance-sampling 1.0`,
-`--proximity-sampling 0.1`) and the hit-band metric `|Y − v| / v < tol` carry over
-unchanged.
-
-What the registry entry controls, beyond the branch and boundary:
-
-- **`valid_max`** — the ingest upper cut. `DMRD` keeps its historical `Y < 1`
-  (sub-dominant dark matter); `ExpR` has **none**, because `r > 1` is the
-  excluded region and is the whole point. Run3ModelGen writes `-1.` when a
-  quantity was not computed, so `Y > 0` is exactly the "we have a value" cut.
-- **`gen_require_neutralino_lsp`** — whether `load_generated_data` vetoes
-  non-neutralino LSPs. True for `DMRD` (a relic density needs a dark matter
-  candidate), false for `ExpR` (a collider limit does not care). This governs
-  **newly generated** data only; pool ingest has never applied the veto by
-  default and still does not.
-- **`gen_steps`** — the Run3ModelGen steps the AL loop runs to label a selected
-  candidate. `ExpR` adds a `SModelS` step, kept **last** among the SPheno
-  consumers, and retains `micromegas` so generated points still carry
-  `MO_Omega`.
-- **`has_mcmc_reference`** — only `DMRD` has an emcee posterior reference, so
-  `load_mcmc_data` and `--use-mcmc-loader` refuse any other target rather than
-  applying an Ω-shaped window to a different observable. Use `--no-mcmc-eval`
-  to run without a reference set; it is the only way to override the
-  `--mcmc-data-dir` the per-model submit scripts always pass (two of them
-  hardcode it, and an empty value cannot beat a shell `:-` default).
-
-`--target-value` defaults to the target's registry value, so it normally needs no
-setting. `--y-transform zscore` is rejected for non-`DMRD` targets: its threshold
-comes from raw-Y statistics, which are meaningless for a quantity spanning nine
-decades.
-
-### SModelS prerequisite
-
-The `ExpR` step list needs the SModelS results database, and compute nodes have
-no internet. `Run3ModelGen/build/setup.sh` points `SMODELS_CACHEDIR` at the repo
-checkout when `/eos` is absent, and that directory holds no database, so every
-`slurm/submit_al_*.sh` now exports
-
-```bash
-export SMODELS_CACHEDIR="${SMODELS_CACHEDIR:-/ptmp/jwuerzin/cache/smodels}"
-```
-
-which `setup.sh` honours. **Both** files must be present there: the
-`official<ver>.pcl` pickle *and* its `https___..._database_<ver>` descriptor;
-with only the pickle SModelS still tries to reach the server and fails.
-`pmssm/model_generation.py` checks for both before spawning any worker, so a
-missing database is one clear error instead of twenty stack traces. That cache
-lives on `/ptmp` (`~/.cache` is a symlink to it) and is therefore purge-eligible;
-a backup sits at `/viper/u2/jwuerzin/pmssm-archive/smodels-cache/`.
-
-### Analysing a non-default target
-
-Every analysis script that reads the pool or the reference now takes the target
-explicitly, because a hardcoded key silently substitutes relic-density data and
-the figure still renders. `_load_y_full` / `_load_xy_full` additionally refuse a
-pool that does not carry the requested target's branch, so a mismatch raises
-instead of producing a plausible wrong number.
-
-Flags added for a variant sweep:
-
-| flag | scripts | purpose |
-|---|---|---|
-| `--target` | `compute_yield_comparison`, `funnel_analysis`, `plot_compute_vs_dataset`, `plot_al_input_target_diagnostics`, `plot_omega_vs_m2_lsp`, `coverage_saturation` | registry key: branch, band centre, validity cuts |
-| `--target-name` | `composition_fractions` | same, where `--target` is already a numeric band centre |
-| `--model-tag` | `plot_compute_vs_dataset`, `plot_mse_trajectories_multiseed`, `plot_al_input_target_diagnostics`, `coverage_saturation`, `evaluate_uq` | resolves `OUTPUT_TAG`'d manifest rows (`transformer_expr`) against the per-model picks |
-| `--support-source mcmc\|pool` | `coverage_saturation` | population defining the in-band support |
-| `--mcmc-yield-json ""` | `plot_hit_rate_trajectories_multiseed` | suppress the relic-density MCMC yield reference lines |
-
-A representative r-target invocation:
-
-```bash
-python scripts/plot_hit_rate_trajectories_multiseed.py \
-    --manifest /ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv \
-    --output-dir /ptmp/jwuerzin/analysis/expr_runs \
-    --target ExpR --baseline-data-dir /ptmp/jwuerzin/data/260804 \
-    --no-baseline-require-neutralino-lsp --mcmc-yield-json ""
-```
-
-### The in-band support, and its two sources
-
-`coverage_saturation.build_target` defines the support by binning a reference
-population's in-band half on a 12-bin equal-occupancy quantile grid in
-(`IN_M_1`, `IN_M_2`, `IN_mu`) and keeping cells with at least `--min-cell`
-points. `coverage_of` then scores a run by the fraction of those cells it
-reaches with in-band points (the run needs one point per cell; the `min_cell`
-threshold applies to the *reference*).
-
-`--support-source` selects the reference: `mcmc` (the emcee posterior, the
-paper's original definition) or `pool` (the random-scan dataset). Axes, bins,
-tolerance, half-split and `min_cell` are identical, so the two differ only in
-which population defines the target region. The relic density can use both; a
-target with no posterior must use `pool`.
-
-The supports differ greatly in resolution, so a coverage value compares models
-*within* a panel and not across panels: a flat scan puts only 0.9% of its points
-in the relic band, giving 27 support cells, against 942 from the posterior and
-639 from the r-value pool. Measured across the completed cells the coarse pool
-support still discriminates at least as well (spread 0.80 vs 0.42), and the
-held-out reference half reaches coverage 1.000 in every case, so no support cell
-is unreachable.
-
-Empirically the three axes are the right ones for **both** targets: ranked by
-mutual information with band membership, the top three for the r-value are
-`M_2`, `M_1`, `mu` (0.0066 / 0.0065 / 0.0051 bits), with a 4.5x gap to `meL`, and
-the trilinears and `tanb` carry essentially none. No single parameter comes close
-to determining band membership (the best is 3% of the band entropy), which is why
-the support is joint and why per-dimension marginal coverage saturates at 1.0.
-
-### Smoke-testing a target end to end
-
-The SModelS path cannot be verified offline, so:
+`--testing` loads a small slice of the pool. The pixi tasks `al-transformer`,
+`al-dnn`, `al-gp` and `al-tabpfn` wrap the four pipelines; `--help` on any of
+them lists every option (`doc/CLI_REFERENCE.md` reproduces the output).
+
+One production run on the cluster, with labelling:
 
 ```bash
 source slurm/cluster.conf
-AL_TARGET=ExpR AL_DRIVER=transformer \
-  sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_1}" \
-         --export=ALL slurm/test_al_target.sh
+sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_2}" \
+       --export=ALL slurm/al/submit_al_gp_exact.sh
 ```
 
-It runs a short AL loop *with* generation and prints the per-iteration
-generation cost, which is what decides whether 40 iterations fit the 24 h limit.
-
-## Multi-Seed Strategy Sweep
-
-For multi-seed comparisons of `(model × selection_strategy × warm/cold)` configurations, use `slurm/submit_strategy_sweep.sh`. This meta-launcher submits one `sbatch` per `(config, seed)`, appends a row to a manifest CSV at submit time, and produces collision-free output directory names that encode the config.
-
-### Sweeping a non-default target
-
-The launcher needs no new flags: the target rides in on `EXTRA_AL_ARGS`, which is
-spliced last into every per-model command line so Click's last-wins parsing
-overrides even the GP scripts' hardcoded flag lists. Keep the r-target runs in
-their own manifest so the relic-density one is untouched:
+The per-model scripts in `slurm/al/` carry the paper's production settings
+(2,000 initial models, 500 selections per iteration from a million
+candidates, 40 iterations) and read overrides from `AL_*` environment
+variables. A run writes one directory (`doc/RUN_OUTPUT_LAYOUT.md`) and resumes
+from its `state.pt`:
 
 ```bash
-OUTPUT_TAG=expr \
-MANIFEST=/ptmp/jwuerzin/analysis/expr_runs/sweep_manifest.csv \
-BUNDLE_SEEDS=1 \
-EXTRA_AL_ARGS="--target ExpR --data-dir /ptmp/jwuerzin/data/260804 --no-mcmc-eval" \
-bash slurm/submit_strategy_sweep.sh
+AL_RESUME_FROM=/path/to/run AL_N_ADDITIONAL_ITERATIONS=20 \
+    sbatch ... --export=ALL slurm/al/submit_al_gp_exact.sh
 ```
 
-`OUTPUT_TAG=expr` suffixes the manifest `model` column and the run directory
-(`active_learning_transformer_expr_...`) while leaving the `AL_MODEL` dispatch
-key alone. Downstream, `plot_hit_rate_trajectories_multiseed.py` strips `_expr`
-before dispatching on model type, and its colour/label tables fall back to the
-bare model name, so no per-variant palette entries are needed. Pass
-`--target ExpR --baseline-data-dir /ptmp/jwuerzin/data/260804` when plotting, and
-note `--baseline-require-neutralino-lsp` defaults on: turn it off for `ExpR`,
-whose population deliberately keeps non-neutralino LSPs.
+The smoke jobs in `slurm/smoke/` exercise each pipeline end to end on the
+development partition, including the physics chain.
 
-### Selection strategies
-
-A third "short-circuit" strategy, `top_k_tol_only`, complements the existing `top_k` and `entropy_batch`:
-
-| Strategy | Tolerance cut | Proximity weighting | DPP-style covariance pick |
-|---|---|---|---|
-| `top_k_tol_only` | ✓ | ✗ | ✗ |
-| `top_k` | ✓ | ✓ | ✗ |
-| `entropy_batch` | ✓ | ✓ | ✓ |
-
-All three apply the same tolerance pre-filter; they differ only in how far through the selection pipeline they continue. Every driver (`active_learning.py`, `active_learning_gp.py`, `active_learning_tabpfn.py`) accepts `--selection-strategy top_k_tol_only` and a new `--seed INT` flag for reproducibility.
-
-### Running the sweep
+## The benchmark campaign
 
 ```bash
-# Full grid (100 jobs): 3 models × 3 strategies × 2 warm/cold × 5 seeds + tabpfn (2 × 1 × 5)
-bash slurm/submit_strategy_sweep.sh
-
-# Preview without submitting
-DRY_RUN=1 bash slurm/submit_strategy_sweep.sh
-
-# Partial sweeps (env-var filters)
-MODELS=transformer STRATEGIES=top_k_tol_only WARM_MODES=warm SEEDS=1,2,3 \
-    bash slurm/submit_strategy_sweep.sh
-
-# Include the (expensive) tabpfn + entropy_batch combination
-TABPFN_ALLOW_ENTROPY=1 bash slurm/submit_strategy_sweep.sh
-
-# BUNDLED MODE: one multi-node sbatch per (model, strategy, warm) cell runs
-# all requested seeds in parallel via srun, reducing the job count from 100
-# to 20. Useful when AssocMaxJobsLimit caps you at 8 concurrent jobs.
-BUNDLE_SEEDS=1 bash slurm/submit_strategy_sweep.sh
+BUNDLE_SEEDS=1 bash slurm/al/submit_strategy_sweep.sh      # model x strategy x warm-start grid, 5 seeds
+bash slurm/campaign/submit_campaign_200.sh                 # the acquisition arms, both targets
+CAMPAIGN_CELLS=<cells csv> CAMPAIGN_HORIZON=<date> \
+    sbatch --partition=apu1 --gres=gpu:1 --mem=16G --export=ALL slurm/campaign/submit_campaign_chase.sh
+CAMPAIGN_ID=<id> REGEN_HORIZON=<date> \
+    sbatch --partition=apu1 --gres=gpu:1 --mem=110000 --export=ALL slurm/campaign/submit_campaign_regen.sh
+bash scripts/campaign/archive_runs.sh                      # tarball of every run's irreplaceable files
 ```
 
-**Defaults** (override via env vars): `SEEDS=1,2,3,4,5`, `MODELS=transformer,deep_gp,exact_gp,tabpfn`, `STRATEGIES=top_k,top_k_tol_only,entropy_batch`, `WARM_MODES=warm,cold`. TabPFN auto-skips the warm/cold axis (no training, no warm-start to apply) and skips `entropy_batch` unless `TABPFN_ALLOW_ENTROPY=1`.
+The sweep launcher writes one manifest row per run; the chase job wakes every
+six hours and resumes whatever is short of 200 iterations; the regeneration
+job re-renders every figure every three days. `doc/CAMPAIGN.md` explains each
+piece and the traps that shaped it; `doc/STORAGE.md` explains why the loop
+packs each iteration's simulator workspaces and how finished runs are archived.
 
-### Bundled mode (`BUNDLE_SEEDS=1`)
+## Reproducing the paper
 
-In default mode the launcher submits one sbatch per `(model, strategy, warm, seed)` — 100 independent jobs that compete for the `AssocMaxJobsLimit=8` concurrent-job cap. When this cap is the bottleneck, bundling lets you run ~5× more seeds in parallel without raising the cap:
-
-- One sbatch per `(model, strategy, warm)` cell (20 bundles total).
-- Each bundle allocates `n_seeds × 2-GPU nodes` and spawns one `srun` per seed in parallel via [slurm/submit_al_bundled.sh](slurm/submit_al_bundled.sh).
-- All `n_seeds` seeds of the cell train concurrently on their own node; bundle wall-clock = max(seed₁, ..., seed_N).
-- Manifest still gets one row per seed; the `job_id` column is shared across the seeds of a bundle, and `expected_run_dir` is unique per seed.
-
-Trade-offs:
-- Same per-seed compute — **total compute is unchanged**; only the scheduling shape differs.
-- Multi-node allocations may queue longer than single-node ones when the cluster is busy.
-- Multi-node `--gres=gpu:1` is rejected on apu, so TabPFN bundles also request `gpu:2` per node and let the second GPU idle.
-- With 8 concurrent bundles × 5 nodes each, the sweep uses up to 40 nodes simultaneously.
-
-### Output directory convention
-
-Each job writes to `/ptmp/jwuerzin/output/active_learning_{model}_{strategy}_{warm}_seed{N}_{YYYYMMDD_HHMMSS}/`, where `warm` is `warm`, `cold`, or `tabpfn` (sentinel). The driver only appends this suffix if the caller's `--output-dir` does not already end with a timestamp — manual runs work as before.
-
-### Manifest CSV
-
-The launcher writes `/ptmp/jwuerzin/analysis/all_runs/sweep_manifest.csv` (header on first run, appended thereafter). One row per submitted job:
-
-| column | content |
-|---|---|
-| `sweep_id` | timestamp of the whole grid — filters "this sweep" from older ones |
-| `submit_time` | per-job `sbatch` time |
-| `model`, `strategy`, `warm_start`, `seed` | the config key |
-| `job_id` | returned by `sbatch --parsable` |
-| `expected_run_dir` | absolute path the driver will write to |
-| `status` | `submitted` → `pending`/`running`/`completed`/`missing`/`failed`/`timeout`/... |
-| `slurm_log` | stdout path |
-
-### Refreshing status
-
-```bash
-# Update `status` in place by consulting sacct + checking for state.pt on disk.
-# Defaults to refreshing only the latest sweep (lexicographically max sweep_id).
-python scripts/update_sweep_manifest.py
-
-# Refresh one specific sweep
-python scripts/update_sweep_manifest.py --sweep-id 20260422_154733
-
-# Refresh every row across all sweeps
-python scripts/update_sweep_manifest.py --all
-```
-
-Idempotent — safe to re-run or cron. A job is marked `completed` only when `summary.json` appears on disk — the driver writes it once, at the very end of the AL loop, so this is the true end-of-run marker. (`state.pt` is overwritten after every iteration and is *not* sufficient evidence of completion; its presence flips the row to `running`.) If sacct reports `COMPLETED` but `summary.json` is missing, the row becomes `missing` (finalise step crashed or output dir mis-pointed).
-
-### Multi-seed hit-rate plots
-
-```bash
-# Read manifest, group by (model, strategy, warm_start), render three views
-python scripts/plot_hit_rate_trajectories_multiseed.py
-
-# Filter to one sweep, require >=3 completed seeds, use ±1 SD bands instead
-python scripts/plot_hit_rate_trajectories_multiseed.py \
-    --sweep-id 20260422_154733 \
-    --min-seeds 3 \
-    --uncertainty sd
-```
-
-Default output dir: `/ptmp/jwuerzin/analysis/all_runs/`. The script writes three plot families (each with one panel per relative tolerance — 10 %, 20 %, 50 %):
-
-  1. `hit_rate_settings_<model>.png` — one figure per model, overlaying every (strategy, warm) combo for that model. Colour = strategy, linestyle = warm.
-  2. `hit_rate_models_<strategy>_<warm>.png` — one figure per setting, overlaying every model that ran with that setting. Colour = model.
-  3. `hit_rate_best_per_model.png` — single figure with one curve per model, picking the (strategy, warm) setting that maximises mean final-iteration hit rate at the strictest tolerance. Falls back to looser tolerances if no config has data at the strictest one. The chosen settings are echoed to stdout.
-
-Groups with fewer than `--min-seeds` completed seeds are silently skipped, so a partially-finished sweep still produces readable figures.
-
-### Best-per-model classification-accuracy plots
-
-Same script (`scripts/plot_hit_rate_trajectories_multiseed.py`), opt-in via `--compute-accuracy`. Renders four extra PNGs alongside `hits_per_desired_best_per_model.png`, each showing classification accuracy (binary `(ŷ ≥ 0.12) == (y_true ≥ 0.12)` in transformed space) across iterations for the best-per-model picks:
-
-  - `accuracy_best_per_model_static_random.png` — eval on the 100 k static random eval set.
-  - `accuracy_best_per_model_mcmc.png` — eval on the MCMC eval set from `--mcmc-data-dir`.
-  - `accuracy_best_per_model_train.png` — each model's *own* iteration-i training set.
-  - `accuracy_best_per_model_val.png` — each model's *own* iteration-i validation set.
-
-Solid line: AL model. Dashed line: random-sampling baseline. SEM band across seeds, same colour-by-model as the hit-rate plot.
-
-The script recomputes accuracy on demand by walking each picked seed run, loading every iteration's `al_model_checkpoint.pt` / `baseline_model_checkpoint.pt` (TabPFN refits per iteration since it has no weight file), and predicting on the four datasets. Per-iteration results are cached at `<run_dir>/accuracy_trajectory.json`, so the first run takes minutes-to-hours and subsequent re-renders are near-instant.
-
-```bash
-# Render hit-rate / hits-per-desired plots AND the four accuracy plots.
-# First run loads X_full once (~88s) then evaluates per seed/iter.
-.pixi/envs/rocm/bin/python scripts/plot_hit_rate_trajectories_multiseed.py \
-    --compute-accuracy \
-    --accuracy-device cuda:0
-
-# Skip TabPFN (its per-iter refit on the 500k-subsampled MCMC set is the slowest cell):
-... --compute-accuracy --accuracy-skip-tabpfn
-
-# Force re-evaluation of cached iters (e.g. after a code change):
-... --compute-accuracy --accuracy-cache-refresh
-```
-
-Interactive nodes typically don't have a GPU; submit on the cluster instead. The single-GPU memory cap on the `apu` partition (`mem=110000`, `cpus-per-task=18`) is enforced — passing those overrides at submit time matches `submit_slurm_single.sh`'s pattern:
-
-```bash
-source slurm/cluster.conf
-sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_1}" \
-       --cpus-per-task=18 --mem=110000 \
-       slurm/submit_accuracy_plots.sh
-
-# Toggles via --export=ALL,...
-sbatch ... --export=ALL,REFRESH=1     slurm/submit_accuracy_plots.sh   # re-eval cached iters
-sbatch ... --export=ALL,SKIP_TABPFN=1 slurm/submit_accuracy_plots.sh   # drop TabPFN
-sbatch ... --export=ALL,SWEEP_ID=20260424_153140 slurm/submit_accuracy_plots.sh
-```
-
-### Multi-seed MCMC R² plots
-
-```bash
-python scripts/plot_r2_mcmc_trajectories_multiseed.py
-
-# Clip y-axis to focus on best-performing region
-python scripts/plot_r2_mcmc_trajectories_multiseed.py --y-min -10 --y-max 1
-```
-
-Sister script to the hit-rate plotter: same manifest filtering, seed grouping, and visual encoding, but plots `al_on_mcmc_r2` (AL surrogate's R² on the held-out MCMC eval set). Outputs go to the same default dir under `r2_mcmc_strategy_<strategy>.png` (one per strategy) and `r2_mcmc_best_per_model.png`. Each figure has a single panel since R² is scalar per iteration. R² on MCMC is typically deeply negative because the MCMC chain distribution differs sharply from the iid training pool — the `--y-min` / `--y-max` flags are useful for comparing high-performing configs without the long tail of bad runs flattening the axis.
-
-### Multi-seed val/static R² and n_train trajectories
-
-```bash
-python scripts/plot_r2_trajectories_multiseed.py
-```
-
-Covers the per-iteration scalars not handled by the dedicated hit-rate / MCMC-R² scripts: validation R² (`al_r2`), static-random eval R² (`al_static_r2`), and cumulative training-set size (`n_train_per_iter`). For each metric writes `<metric>_strategy_<strategy>.png` (one per strategy) and `<metric>_best_per_model.png`.
-
-### Multi-seed MMD² trajectories
-
-```bash
-python scripts/plot_mmd2_trajectories_multiseed.py
-```
-
-For each iteration of every (model, strategy, warm) seed, computes MMD² between the AL training set (free params, normalized) and a fixed MCMC reference subsample with a Gaussian kernel. Caches per-iteration MMD² values to `mmd2_cache.csv` so re-renders are fast; the kernel bandwidth used is logged to `mmd2_bandwidth.json`. Outputs `mmd2_strategy_<strategy>.png` and `mmd2_best_per_model.png`.
-
-### Multi-seed pairwise density summary
-
-```bash
-python scripts/plot_pairwise_input_summary.py
-```
-
-For each (model, strategy, warm) cell with ≥ `--min-seeds` seeds, plots a 2×N_pairs grid of 2-D histograms over the same parameter projections used by `analyse_runs.plot_pairwise_scatter_per_run`. Top row: *mean* normalized density across seeds. Bottom row: *std* of per-seed densities (highlights bins where seed-to-seed agreement is weakest). Optionally overlays an MCMC reference contour on the mean row. One PNG per cell at `pairwise_density_<model>_<strategy>_<warm>.png`.
-
-### Per-seed (no aggregation) hit-rate plots
-
-```bash
-python scripts/plot_hit_rate_seeds_per_model.py \
-    --baseline-data-dir /ptmp/jwuerzin/data/18387358
-```
-
-Same manifest + tolerance + metric machinery as `plot_hit_rate_trajectories_multiseed.py`, but each seed gets its own line instead of a mean ± band. Useful for diagnosing seed-to-seed variability or partial runs that the band would otherwise smooth over. Pass `--baseline-data-dir` to overlay each seed's dashed random-baseline trajectory and a horizontal full-pool prevalence reference (matching the overlays on `*_best_per_model.png` and `*_strategy_*.png`).
-
-### Single-run hit-rate plots
-
-```bash
-python scripts/plot_hit_rate_single_run.py \
-    --run-dir /ptmp/jwuerzin/output/active_learning_<...> \
-    --seed 42 --model-label transformer --strategy-label top_k --warm-label warm
-```
-
-Single-run analogue of the multi-seed plotter: writes `hit_rate_single_run.png` and `hits_per_desired_single_run.png` (one panel per tolerance) for one run directory. Reuses the metric helpers from `plot_hit_rate_trajectories_multiseed.py` so definitions stay in sync. Useful for one-off runs that aren't in the sweep manifest. Outputs default to the run directory; override via `--output-dir`.
-
-## Project Structure
-
-```
-pMSSM-trafo/
-├── pmssm/                      # Unified package (13 modules)
-│   ├── __init__.py             # Package exports
-│   ├── config.py               # Constants, parameter ranges
-│   ├── data.py                 # Data loading & normalization
-│   ├── datasets.py             # PyTorch Dataset classes
-│   ├── models/                 # Neural network architectures
-│   │   ├── transformer.py      # PMSSMTransformer variants
-│   │   └── feedforward.py      # PMSSMFeedForward (MLP)
-│   ├── selection.py            # Candidate generation (LHS), selection strategies
-│   ├── uncertainty.py          # MC Dropout & GP uncertainty
-│   ├── training.py             # Training loops for transformer & GP
-│   ├── evaluation.py           # R², metrics, lengthscales
-│   ├── visualization.py        # Plotting utilities
-│   ├── logging_utils.py        # Structured logging
-│   ├── resume.py               # Checkpoint loading for state.pt
-│   └── model_generation.py     # Run3ModelGen interface
-├── train_pmssm.py              # Transformer training script
-├── active_learning.py          # Transformer AL pipeline (MC Dropout)
-├── active_learning_gp.py       # GP AL pipeline (ExactGP, DeepGP, SparseGP)
-├── active_learning_tabpfn.py   # TabPFN AL pipeline (pre-trained foundation model)
-├── analyse_runs.py             # Cross-run quality & diversity analysis
-├── run_analysis.sh             # Wrapper for analyse_runs.py comparisons
-├── resume_slurm.sh             # Resume timed-out Slurm jobs from checkpoint
-├── slurm/                      # Slurm job submission scripts
-│   ├── cluster.conf.template   # Cluster config template (partition, GPU gres)
-│   ├── resume_args.sh          # Resume flag builder for slurm scripts
-│   ├── submit_al_transformer.sh        # Transformer entropy 2-GPU
-│   ├── submit_al_transformer_top_k.sh  # Transformer top-k 2-GPU
-│   ├── submit_al_gp_exact.sh           # ExactGP entropy 2-GPU
-│   ├── submit_al_gp_exact_top_k.sh     # ExactGP top-k 2-GPU
-│   ├── submit_al_gp_deep.sh            # DeepGP entropy 2-GPU
-│   ├── submit_al_gp_deep_top_k.sh      # DeepGP top-k 2-GPU
-│   ├── submit_al_tabpfn.sh             # TabPFN top-k 1-GPU
-│   ├── submit_al_tabpfn_entropy.sh     # TabPFN entropy 1-GPU
-│   ├── submit_strategy_sweep.sh        # Multi-seed grid launcher (5 seeds × grid)
-│   └── submit_al_bundled.sh            # Multi-node bundled-seed worker (srun-fork one seed per node)
-├── scripts/
-│   ├── update_sweep_manifest.py                 # Refresh sweep manifest status from sacct + state.pt
-│   ├── plot_hit_rate_trajectories_multiseed.py  # Mean ± SEM hit-rate / hits-per-desired across seeds
-│   ├── plot_hit_rate_seeds_per_model.py         # Per-seed (no aggregation) hit-rate trajectories
-│   ├── plot_hit_rate_single_run.py              # Single-run hit-rate / hits-per-desired panels
-│   ├── plot_r2_trajectories_multiseed.py        # Val/static R² and n_train trajectories
-│   ├── plot_r2_mcmc_trajectories_multiseed.py   # MCMC R² trajectories
-│   ├── plot_mmd2_trajectories_multiseed.py      # MMD² (training set vs MCMC reference) trajectories
-│   ├── plot_pairwise_input_summary.py           # Per-cell pairwise density mean ± std grids
-│   ├── plot_transformer_architecture.py         # Regenerate doc/transformer_architecture.png
-│   └── mcmc_diagnostics.py                      # Split-R̂ + bulk-ESS for ROOT-chain MCMC outputs
-├── pixi.toml                   # Dependency configuration
-├── data/                       # ROOT files with pMSSM data
-├── logs/                       # Slurm job logs (timestamped)
-├── al_pmssmwithgp/             # GP models submodule (ExactGP, DeepGP, SparseGP)
-├── Run3ModelGen/               # Submodule for pMSSM model generation
-├── tests/                      # Unit tests
-└── doc/                        # Documentation
-    ├── ANALYSIS_METRICS.md     # Cross-run analysis metrics reference
-    ├── CLI_REFERENCE.md        # Complete CLI options
-    ├── IMPLEMENTATION_DETAILS.md  # Uncertainty, proximity weighting, normalization
-    ├── PARALLEL_TRAINING.md    # Multi-GPU setup
-    ├── SUMMARY.md              # Project overview
-    └── ...                     # Additional guides
-```
-
-## Output
-
-Training produces:
-- **Log files**: `logs/training_YYYYMMDD_HHMMSS.log`
-- **Plots** in `plots/run_YYYYMMDD_HHMMSS/`:
-  - `losses_<model>.png` - Training/validation loss curves
-  - `<model>_true_vs_pred_*.png` - Scatter plots
-  - `<model>_hist_true_vs_pred_*.png` - 2D histograms
-
-## Multi-GPU Training
-
-With 3+ GPUs, models train in parallel:
-- GPU 0: PMSSMTransformer
-- GPU 1: PMSSMTransformerTabular
-- GPU 2: MLP Baseline
-
-See [doc/PARALLEL_TRAINING.md](doc/PARALLEL_TRAINING.md) for details.
+`slurm/campaign/submit_campaign_regen.sh` is the single entry point: it
+refreshes the manifests, renders every figure family in the documented order
+and copies the renders into the manuscript's figure directories. Run it once
+with `COPY_TO_PAPER=0` to render without touching the paper.
+`doc/REPRODUCING_THE_PAPER.md` maps each figure and table to the script that
+makes it, lists the inputs, and records the stale-cache traps that have
+produced silently wrong numbers before.
 
 ## Documentation
 
-### Getting Started
-- **[README.md](README.md)** - This file (quick start, overview)
-- [Project Summary](doc/SUMMARY.md) - Overview of all pipelines and status
+| guide | contents |
+|---|---|
+| `doc/ACQUISITION.md` | candidate generation, the tolerance cut and proximity weighting, the selection strategies, the acquisition heads |
+| `doc/TARGETS.md` | the target registry (`DMRD`, `ExpR`), the SModelS prerequisite, the two definitions of the in-band support |
+| `doc/CLI_REFERENCE.md` | the complete option list of the four pipelines, YAML sweeps, resuming |
+| `doc/RUN_OUTPUT_LAYOUT.md` | what a run directory contains and which file means what |
+| `doc/SLURM.md` | the cluster contract, the per-model scripts and their variables, bundled multi-seed jobs, resuming |
+| `doc/CAMPAIGN.md` | sweep manifests, the 200-iteration campaign, the chase loop, the regeneration job |
+| `doc/REPRODUCING_THE_PAPER.md` | figure and table to script map, regeneration order, known traps |
+| `doc/DATA.md` | the pools, the MCMC reference, the static evaluation set, caches |
+| `doc/STORAGE.md` | the purge, the inode limit, in-loop packing, archiving |
+| `doc/PACKAGE_STRUCTURE.md` | the `pmssm` package module by module |
+| `doc/IMPLEMENTATION_DETAILS.md` | log-space uncertainty, warm starting, proximity weighting, pipeline differences, GP jitter |
+| `doc/ANALYSIS_METRICS.md` | the cross-run metrics of `scripts/analysis/analyse_runs.py` |
+| `doc/LOGGING_INFO.md` | where the logs are and what they contain |
+| `scripts/README.md`, `slurm/README.md` | one line per script |
 
-### Active Learning Pipelines
-- [Transformer AL Plan](doc/active_learning_plan.md) - Detailed design and algorithms
-- [GP Pipeline Reference](doc/gp_pipeline_comparison.md) - GP features, CLI options, models
-- [Implementation Details](doc/IMPLEMENTATION_DETAILS.md) - Uncertainty computation, proximity weighting, normalization differences
+## Not in this repository, and other caveats
 
-### Analysis
-- [Analysis Metrics](doc/ANALYSIS_METRICS.md) - Cross-run quality & diversity metrics reference
+- The data (pools, reference posterior, static evaluation sets, SModelS
+  database) and the campaign's run directories live on the cluster's `/ptmp`
+  and are not deposited with the code.
+- `Run3ModelGen` is private to CERN GitLab.
+- The scripts under `scripts/experiments/` and `slurm/experiments/` back
+  one-off studies in the supplementary material and still carry the
+  cluster's literal paths; the production code reads every path from
+  `pmssm/paths.py` and `slurm/cluster.conf`.
+- `tests/check_repo_layout.py` (`pixi run check`) guards the layout rules; it
+  runs locally only, there is no continuous integration.
 
-### Reference
-- [CLI Reference](doc/CLI_REFERENCE.md) - Complete command-line options for all pipelines
-- [Parallel Training](doc/PARALLEL_TRAINING.md) - Multi-GPU setup and configuration
-- [Logging Info](doc/LOGGING_INFO.md) - Structured logging with structlog
-- [Plot Organization](doc/PLOT_ORGANIZATION.md) - Output plot structure
+## Citation and licence
 
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
+Please cite the paper when using this code. MIT License, see `LICENSE`.

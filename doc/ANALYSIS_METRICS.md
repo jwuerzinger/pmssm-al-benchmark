@@ -1,6 +1,6 @@
 # Cross-Run Analysis Metrics
 
-Reference for all metrics computed by `analyse_runs.py` and orchestrated via `run_analysis.sh`.
+Reference for the metrics computed by `scripts/analysis/analyse_runs.py`, which is also the library (`load_run`, `compute_hit_rate_trajectory`, the free-parameter tables) behind most figure scripts.
 
 ## Overview
 
@@ -10,7 +10,7 @@ The analysis loads `state.pt` checkpoints from completed active learning runs an
 
 | Metric | Description | Source |
 |--------|-------------|--------|
-| **Hit rate** | Fraction of training points within tolerance of the target relic density (0.12). Reported at 10%, 20%, and 50% relative tolerance: `\|Y - 0.12\| / 0.12 < tol`. | `state.pt -> Y` |
+| **Hit rate** | Fraction of training points within tolerance of the target value (0.12 for the relic density). Reported at 10%, 20%, and 50% relative tolerance: `\|Y - 0.12\| / 0.12 < tol`. | `state.pt -> Y` |
 | **Validation R²** | AL model R² on the held-out validation split, per iteration. | `state.pt -> al_r2` |
 | **Static random eval R²** | R² on a fixed held-out random sample (100k points). Unbiased generalization metric. | `state.pt -> al_on_static_random_r2` |
 | **MCMC eval R²** | R² on MCMC posterior samples. Measures how well the model generalizes to the physically motivated region. | `state.pt -> al_on_mcmc_r2` |
@@ -62,12 +62,12 @@ The analysis loads `state.pt` checkpoints from completed active learning runs an
 ## CLI Reference
 
 ```
-python analyse_runs.py \
+python scripts/analysis/analyse_runs.py \
     --run-dirs DIR [DIR ...]          # Run output directories (must contain state.pt)
     --labels NAME [NAME ...]          # Human-readable labels (auto-derived if omitted)
     --mcmc-data-dir DIR               # MCMC ROOT files for MMD + cluster coverage
     --output-dir DIR                  # Output directory (default: analysis_output)
-    --target {DMRD,CrossSection,CLs}  # Target variable (default: DMRD)
+    --target {DMRD,ExpR}              # Target variable (default: DMRD)
     --n-bootstrap N                   # Bootstrap resamples (default: 500, 0 to skip)
     --n-permutations N                # MMD permutation resamples (default: 200)
     --n-clusters N                    # K-means clusters for coverage (default: 20)
@@ -76,13 +76,3 @@ python analyse_runs.py \
     --seed N                          # RNG seed (default: 0)
 ```
 
-## Wrapper Script
-
-`run_analysis.sh` orchestrates multiple comparisons:
-
-1. **Transformer strategy** -- entropy vs top-k selection (same model, 2 GPU)
-2. **Model type** -- transformer vs ExactGP vs DeepGP vs TabPFN (single GPU, top-k)
-3. **Model type (entropy)** -- same comparison using entropy selection for GP models (2 GPU)
-4. **GP strategy** -- entropy vs top-k within each GP model type
-5. **Parallelism** -- 1-GPU vs 2-GPU for transformer, ExactGP, DeepGP
-6. **All runs** -- full overview of every completed run

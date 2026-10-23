@@ -109,11 +109,11 @@ Without these optimizations:
 Warm starting is **enabled by default** in all production scripts:
 
 ```bash
-python active_learning.py --warm-starting  # Default: enabled
-python active_learning_gp.py --warm-starting  # Default: enabled
+python pipelines/active_learning_transformer.py --warm-starting  # Default: enabled
+python pipelines/active_learning_gp.py --warm-starting  # Default: enabled
 
 # Disable for ablation studies only:
-python active_learning.py --no-warm-starting
+python pipelines/active_learning_transformer.py --no-warm-starting
 ```
 
 ---
@@ -188,21 +188,20 @@ Weighted:        0.00   0.01   0.57   0.50   0.49   0.04   0.00
 **Transformer:**
 ```bash
 # Default: 0.1 (enabled)
-python active_learning.py --proximity-sampling 0.1  # Moderate focus (default)
-python active_learning.py --proximity-sampling 0.0  # Disable weighting
+python pipelines/active_learning_transformer.py --proximity-sampling 0.1  # Moderate focus (default)
+python pipelines/active_learning_transformer.py --proximity-sampling 0.0  # Disable weighting
 ```
 
 **GP:**
 ```bash
 # Default: enabled with entropy batch selection
-python active_learning_gp.py --proximity-sampling 0.1  # Moderate focus
-python active_learning_gp.py --proximity-sampling 0.0  # Disable
-python active_learning_gp.py --tolerance-sampling 0.0  # Also disable pre-filtering
+python pipelines/active_learning_gp.py --proximity-sampling 0.1  # Moderate focus
+python pipelines/active_learning_gp.py --proximity-sampling 0.0  # Disable
+python pipelines/active_learning_gp.py --tolerance-sampling 0.0  # Also disable pre-filtering
 ```
 
-**Shell scripts without proximity weighting:**
-- [run_active_learning_no_proximity.sh](../run_active_learning_no_proximity.sh)
-- [run_active_learning_gp_no_proximity.sh](../run_active_learning_gp_no_proximity.sh)
+On the cluster, pass the flag through `AL_EXTRA_ARGS="--proximity-sampling 0"`
+to any per-model script in `slurm/al/`.
 
 ### Origin
 
@@ -329,19 +328,18 @@ This achieves similar goals to tolerance_sampling without requiring additional c
 
 | Pipeline | Targets | CLI |
 |----------|---------|-----|
-| **Transformer** | DMRD only | None |
-| **GP** | DMRD, CrossSection, CLs | `--target` |
+| every pipeline | `DMRD`, `ExpR` (`CrossSection` and `CLs` are registry examples without a pool) | `--target`, see `doc/TARGETS.md` |
 
 ### Model Variants
 
 | Pipeline | Models Available |
 |----------|------------------|
-| **Transformer** | PMSSMTransformerTabular (1 variant) |
-| **GP** | ExactGP, DeepGP, SparseGP, MLP (4 variants) |
+| **Transformer / DNN** | PMSSMTransformerTabular; PMSSMFeedForward (and its width-matched variant) |
+| **GP** | ExactGP, DeepGP, SparseGP, MLP, Laplace GP classifier |
 
 ### Comprehensive Comparison
 
-See [gp_pipeline_comparison.md](gp_pipeline_comparison.md) for detailed pipeline comparison.
+See `history/gp_pipeline_comparison.md` for the original (2026-04) pipeline comparison.
 
 ---
 
@@ -417,8 +415,8 @@ Matrix not positive definite after repeatedly adding jitter up to 1.0e-06.
 
 ## See Also
 
-- [HARMONIZATION_SUMMARY.md](HARMONIZATION_SUMMARY.md) - Log transformation harmonization details
-- [gp_pipeline_comparison.md](gp_pipeline_comparison.md) - Comprehensive pipeline comparison
+- [history/HARMONIZATION_SUMMARY.md](history/HARMONIZATION_SUMMARY.md) - the log-transformation harmonisation (2026-04)
+- [history/gp_pipeline_comparison.md](history/gp_pipeline_comparison.md) - the original pipeline comparison (2026-04)
 - [CLI_REFERENCE.md](CLI_REFERENCE.md) - Complete command-line reference
-- [active_learning_plan.md](active_learning_plan.md) - Transformer AL design
+- [history/active_learning_plan.md](history/active_learning_plan.md) - the original transformer loop design (2026-04)
 - [README.md](../README.md) - Quick start guide

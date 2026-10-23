@@ -1,463 +1,651 @@
-# CLI Reference
+# CLI reference
 
-Complete command-line interface reference for all active learning pipelines and analysis tools.
+The four pipelines share most of their options; the complete lists below are
+the output of `--help` and are the authoritative reference. Conventions:
 
-## Quick Reference
+- **Config files and sweeps.** `--config-file sweep.yaml` overrides any option
+  (keys with underscores: `n_iterations: 10`); a list value creates a
+  Cartesian product, and `--sweep-index N` selects one combination, which is
+  what `slurm/al/submit_sweep.sh` passes from the array task id.
+- **Resuming.** `--resume-from <run dir> --n-additional-iterations <n>`
+  continues a run in place from its `state.pt`; `--allow-config-drift`
+  permits a changed configuration. Architecture flags must be repeated.
+- **Targets and heads.** `--target DMRD|ExpR`, `--head
+  regression|classification|lsq_classification`, `--selection-strategy`
+  (`doc/ACQUISITION.md`, `doc/TARGETS.md`). `--no-mcmc-eval` is required for
+  targets without a reference posterior.
+- **Testing.** `--testing` loads a small slice of the pool; `--no-generate-data`
+  selects without labelling.
+- **Production values** are set by the per-model scripts in `slurm/al/`
+  (`doc/SLURM.md`), not by the driver defaults.
 
-```bash
-# Transformer AL - Quick test (log-space training)
-python active_learning.py --y-transform log --testing
+## `pipelines/active_learning_transformer.py`
 
-# Transformer AL - Production (log-space training)
-python active_learning.py --y-transform log --n-iterations 40 --generate-data --epochs 10000
+```
+Usage: active_learning_transformer.py [OPTIONS]
 
-# GP AL - Quick test
-python active_learning_gp.py --testing
+  Active learning pipeline for pMSSM relic density prediction.
 
-# GP AL - Production
-python active_learning_gp.py --n-iterations 40 --generate-data --epochs 2000
+  Trains PMSSMTransformerTabular, computes uncertainty via MC Dropout, and
+  selects most informative points for data generation.
 
-# TabPFN AL - Production (requires TABPFN_TOKEN)
-python active_learning_tabpfn.py --n-iterations 40 --generate-data --n-candidates 1000000
-
-# Cross-run analysis
-python analyse_runs.py --run-dirs run_a/ run_b/ --mcmc-data-dir /path/to/mcmc --output-dir analysis/
+Options:
+  --testing / --no-testing        Run in testing mode (small data).
+  --n-iterations INTEGER          Number of active learning iterations.
+  --n-candidates INTEGER          Candidate pool size.
+  --n-select INTEGER              Number of points to select per iteration.
+  --mc-samples INTEGER            Number of MC dropout forward passes.
+  --epochs INTEGER                Training epochs per iteration (default:
+                                  2000).
+  --dropout FLOAT                 Dropout rate for MC dropout.
+  --n-datasets INTEGER            Number of ROOT datasets to load.
+  --n-samples INTEGER             Number of samples to use from data.
+  --val-fraction FLOAT            Fraction of data reserved for validation
+                                  (default: 0.2). Applied to initial data and
+                                  each batch of new points.
+  --output-dir TEXT               Output directory.
+  --generate-data / --no-generate-data
+                                  Generate new models using Run3ModelGen.
+  --min-gen-fraction FLOAT        Minimum fraction of n-select that must be
+                                  generated successfully before stopping
+                                  retries (default: 0.6).
+  --max-gen-attempts INTEGER      Maximum number of generation attempts per
+                                  iteration (default: 10).
+  --gen-workers INTEGER           Number of parallel genModels.py workers per
+                                  generation attempt (default: 1).
+  --head [classification|lsq_classification|regression]
+                                  Acquisition head (see pmssm.heads).
+                                  'regression' (default) is the production
+                                  path: MSE on the transformed target,
+                                  acquisition by predictive variance.
+                                  'classification' trains binary cross-entropy
+                                  on the verdict 1[t>0] and must be paired
+                                  with --selection-strategy bald or
+                                  cls_entropy, since its output is a logit and
+                                  the mean-based tolerance cut and proximity
+                                  weighting have no meaning in logit units.
+  --selection-strategy [top_k|top_k_tol_only|tol_only_random|entropy_batch|bald|cls_entropy]
+                                  Selection strategy: top_k, top_k_tol_only
+                                  (short-circuit, no proximity weighting), or
+                                  entropy_batch (default).
+  --entropy-blur FLOAT            Entropy smoothing parameter (entropy_batch
+                                  only).
+  --entropy-beta FLOAT            Gibbs sampling temperature (entropy_batch
+                                  only).
+  --entropy-pool-size INTEGER     Focused pool size for entropy_batch pre-
+                                  filtering.
+  --candidate-generation [uniform|lhs]
+                                  Candidate pool generation method: uniform
+                                  random or Latin Hypercube Sampling (default:
+                                  lhs).
+  --candidate-source [pool|mcmc]  Candidate source: 'pool' (LHS/uniform,
+                                  default) or 'mcmc' (theoretical-limit /
+                                  oracle mode — restrict candidates to the
+                                  pre-loaded MCMC dataset; --generate-data is
+                                  forced off).
+  --proximity-sampling FLOAT      Gaussian proximity weighting width around
+                                  target value (0 to disable, default: 0.1).
+  --tolerance-sampling FLOAT      Hard cut: keep only candidates within
+                                  ±tolerance of threshold in transformed space
+                                  (0 to disable, default: 1.0).
+  --target [CLs|CrossSection|DMRD|ExpR]
+                                  Observable the surrogate learns and the AL
+                                  loop targets. 'DMRD' is the dark matter
+                                  relic density (boundary Omega h^2 = 0.12);
+                                  'ExpR' is the SModelS best expected r-value,
+                                  whose boundary r = 1 is the LHC exclusion
+                                  contour. Selects the ROOT branch, the ingest
+                                  validity cuts and the Run3ModelGen steps
+                                  used to label generated points (default:
+                                  DMRD).
+  --target-value FLOAT            Physical target value for proximity
+                                  weighting. Defaults to the selected target's
+                                  registry value (0.12 for DMRD, 1.0 for
+                                  ExpR), so it normally needs no explicit
+                                  setting.
+  --no-mcmc-eval                  Ignore --mcmc-data-dir and run without an
+                                  MCMC reference set. Needed for targets that
+                                  have no posterior reference: the per-model
+                                  submit scripts always pass --mcmc-data-dir
+                                  (two of them hardcode it), and an empty
+                                  value cannot override a shell ':-' default,
+                                  so this flag is the only way to disable it
+                                  purely through AL_EXTRA_ARGS.
+  --config-file TEXT              YAML config file (overrides CLI args).
+                                  Supports parameter sweeps.
+  --sweep-index INTEGER           Sweep combination index (requires --config-
+                                  file).
+  --early-stopping / --no-early-stopping
+                                  Enable early stopping on validation loss
+                                  (default: enabled).
+  --patience INTEGER              Early stopping patience (epochs without
+                                  improvement, default: 200).
+  --warm-starting / --no-warm-starting
+                                  Warm-start from previous iteration
+                                  checkpoint (default: enabled). NOTE: because
+                                  this defaults to enabled, a cold run must be
+                                  resumed with an explicit --no-warm-starting
+                                  or it will silently continue warm; --resume-
+                                  from now refuses to do so.
+  --n-ensemble INTEGER            Train K independent members per iteration
+                                  and use their disagreement as the
+                                  acquisition uncertainty instead of MC
+                                  dropout (K=1, the default, keeps MC
+                                  dropout). Members get distinct seeds and
+                                  fresh initialisations, so their spread
+                                  measures how much functions that all fit the
+                                  labelled data still differ. Requires --no-
+                                  train-baseline. NOTE the across-member
+                                  covariance has rank <= K-1, so entropy_batch
+                                  is degenerate for batches larger than that;
+                                  use top_k.
+  --acq-uncertainty [dropout|laplace]
+                                  How the acquisition uncertainty is computed.
+                                  'dropout' (default) takes the spread of
+                                  --mc-samples stochastic passes. 'laplace'
+                                  uses a last-layer linearised Laplace
+                                  posterior: sigma^2(x)=phi^T (Phi^T Phi/sn2 +
+                                  I/tau) phi over the penultimate features,
+                                  which is EXACT here because the head is
+                                  linear and the loss is MSE. Unlike dropout
+                                  it grows with distance from the labelled
+                                  features rather than with local weight
+                                  sensitivity, needs ONE forward pass instead
+                                  of --mc-samples, and yields a candidate
+                                  covariance of rank up to the feature
+                                  dimension instead of --mc-samples-1, which
+                                  entropy_batch needs. Incompatible with
+                                  --n-ensemble > 1.
+  --laplace-prior-precision FLOAT
+                                  Gaussian prior precision on the last-layer
+                                  weights for --acq-uncertainty laplace.
+                                  Ranking is insensitive to it in this regime
+                                  (Phi^T Phi/sn2 is O(1e4)), so the default is
+                                  only a numerical safeguard.
+  --allow-config-drift            Permit --resume-from to change the loop
+                                  configuration (warm start, strategy,
+                                  n_select, target, transform). Off by
+                                  default: such a resume yields a run whose
+                                  halves are not comparable, which is silent
+                                  in the outputs.
+  --eval-data-path TEXT           Path to external eval dataset (ROOT/CSV) for
+                                  validation.
+  --compute-full-metrics / --no-compute-full-metrics
+                                  Compute comprehensive evaluation metrics
+                                  (accuracy, MSE, RMSE).
+  --y-transform [zscore|log]      Y transformation: 'log' (default,
+                                  recommended) or 'zscore' (legacy).
+  --mcmc-data-dir TEXT            Directory containing MCMC ROOT files for
+                                  static evaluation (e.g.,
+                                  data/neutralino_v4).
+  --mcmc-max-samples INTEGER      Seeded uniform subsample cap on the MCMC set
+                                  (emcee chains are ~96% repeated rows; the
+                                  subsample preserves multiplicity weighting).
+                                  0 disables.
+  --static-eval-size INTEGER      Number of models to reserve from the random
+                                  pool as a static evaluation set (default:
+                                  100000).
+  --data-dir TEXT                 Directory containing training ROOT files
+                                  (default: data/18387358).
+  --use-mcmc-loader / --no-use-mcmc-loader
+                                  Load initial training data via
+                                  load_mcmc_data (MCMC-specific filters:
+                                  straddle-0.12, exclude <0.04). Default:
+                                  load_pmssm_data via --data-dir.
+  --train-baseline / --no-train-baseline
+                                  Also train a random-sampling baseline model
+                                  each iteration (default: enabled). Disable
+                                  for pure capacity tests.
+  --resume-from TEXT              Path to previous output dir to resume from
+                                  (loads state.pt).
+  --n-additional-iterations INTEGER
+                                  If --resume-from given, run this many more
+                                  iterations.
+  --gpu-ids TEXT                  Comma-separated GPU IDs for AL and baseline
+                                  models (default: 2,3).
+  --pack-debris / --keep-debris   At the end of each iteration, summarise the
+                                  SModelS winners and the LSP composition into
+                                  the log plus a small JSON, keep the ntuples,
+                                  and pack iteration_NNN/{worker_*,retry_*}
+                                  into one debris.tar. On by default: each
+                                  iteration otherwise leaves ~6,200 files and
+                                  /ptmp has a hard filesystem inode ceiling
+                                  that does not grow. --keep-debris restores
+                                  the old behaviour of leaving every workspace
+                                  in place.
+  --seed INTEGER                  Master random seed propagated to torch /
+                                  numpy / candidate pool (default: 42).
+  --help                          Show this message and exit.
 ```
 
-## Common Options
+## `pipelines/active_learning_dnn.py`
 
-Options available in both pipelines:
+```
+Usage: active_learning_dnn.py [OPTIONS]
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--testing` | flag | off | Testing mode (3 datasets, small sample size, few iterations) |
-| `--n-iterations` | int | 1 | Number of active learning iterations |
-| `--n-candidates` | int | varies | Candidate pool size for selection (Transformer: 10000, GP: 1000) |
-| `--n-select` | int | varies | Points to select per iteration (Transformer: 100, GP: 10) |
-| `--n-datasets` | int | None | Number of ROOT datasets to load |
-| `--n-samples` | int | None | Number of samples to use from datasets |
-| `--output-dir` | str | varies | Output directory (Transformer: `active_learning_output`, GP: `active_learning_gp_output`) |
-| `--generate-data` | flag | off | Generate new models via Run3ModelGen after selection |
-| `--gen-workers` | int | 1 | Number of parallel workers for model generation |
-| `--epochs` | int | varies | Max training epochs per AL iteration (Transformer: 2000, GP: 2000) |
-| `--early-stopping` | flag | on | Enable early stopping on validation loss |
-| `--no-early-stopping` | flag | - | Disable early stopping (train for full epoch budget) |
-| `--patience` | int | 200 | Patience for early stopping (iterations without improvement) |
-| `--learning-rate` | float | varies | Optimizer learning rate (Transformer: 3e-4, GP: 1e-3) |
-| `--warm-starting` | flag | on | Resume training from previous iteration checkpoint |
-| `--no-warm-starting` | flag | - | Train from scratch each iteration |
-| `--config-file` | str | None | YAML config file for parameter overrides |
-| `--sweep-index` | int | None | Sweep combination index (for SLURM array jobs) |
-| `--eval-data-path` | str | None | Path to external evaluation dataset (ROOT file) |
-| `--compute-full-metrics` | flag | off | Compute comprehensive evaluation metrics (accuracy, MSE, RMSE, R², chi², pulls) |
+  Active learning pipeline for pMSSM relic density prediction (DNN variant).
 
-## Transformer-Specific Options
+  Trains PMSSMFeedForward, computes uncertainty via MC Dropout, and selects
+  most informative points for data generation.
 
-Options only available in `active_learning.py`:
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--y-transform` | str | log | Target transformation: `log` (log-space training) or `zscore` (z-score normalization) |
-| `--dropout` | float | 0.1 | Dropout rate for PMSSMTransformerTabular |
-| `--mc-samples` | int | 30 | Number of Monte Carlo forward passes for uncertainty estimation |
-| `--selection-strategy` | str | entropy_batch | Point selection strategy: `entropy_batch` (default), `top_k`, `proximity_weighted` |
-| `--entropy-pool-size` | int | 5000 | Size of high-uncertainty pool for entropy-based selection |
-| `--candidate-generation` | str | lhs | Candidate generation method: `lhs` (Latin Hypercube), `uniform` |
-| `--proximity-sampling` | float | 0.1 | Proximity weighting width (0 = disabled, 0.1 = moderate focus near θ=0.12). Default enables proximity weighting. |
-
-### Selection Strategies (Transformer)
-
-**entropy_batch** (default):
-- Pre-filter candidates with high entropy
-- Use Latin Hypercube Sampling for candidates
-- More diverse selection
-
-**top_k**:
-- Select top-K points by MC Dropout variance
-- Simple, fast, no diversity guarantee
-
-**proximity_weighted**:
-- Weight uncertainty by proximity to target value (θ = 0.12 for DMRD)
-- Focuses exploration near scientifically interesting region
-- Formula: `u_weighted(x) = u(x) × exp(-((μ(x) - θ)² / (2σ²)))`
-
-## GP-Specific Options
-
-Options only available in `active_learning_gp.py`:
-
-### Model Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--target` | str | DMRD | Target function: `DMRD` (relic density), `CrossSection`, `CLs` |
-| `--model-type` | str | exact_gp | GP model: `exact_gp`, `deep_gp`, `sparse_gp`, `mlp` |
-| `--kernel` | str | RBF | Kernel type: `RBF`, `Matern`, `RQK`, `RBF+Matern` |
-| `--lengthscale` | float | 1.0 | Initial kernel lengthscale |
-| `--noise` | float | 1e-2 | Initial noise level |
-| `--jitter` | float | 1e-3 | Cholesky decomposition jitter |
-| `--use-ard` | flag | on | Enable Automatic Relevance Determination (ARD) |
-| `--no-ard` | flag | - | Disable ARD (single lengthscale for all dimensions) |
-| `--use-dkl` | flag | off | Enable Deep Kernel Learning (ExactGP only) |
-| `--inducing-strategy` | str | kmeans | Inducing point initialization: `kmeans`, `vanilla` (SparseGP only) |
-| `--batch-size` | int | 256 | Batch size for DeepGP and SparseGP training |
-
-### Selection Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--selection-strategy` | str | entropy_batch | Point selection: `entropy_batch` (default), `top_k` |
-| `--entropy-blur` | float | 0.15 | Entropy smoothing parameter (entropy_batch only) |
-| `--entropy-beta` | float | 50.0 | Gibbs sampling temperature (entropy_batch only) |
-| `--tolerance-sampling` | float | 1.0 | Threshold filter width (entropy_batch only) |
-| `--proximity-sampling` | float | 0.1 | Proximity weighting width (entropy_batch only) |
-
-### Evaluation & Tracking Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--track-lengthscales` | flag | on | Save ARD lengthscales per iteration to `lengthscales.csv` |
-| `--no-track-lengthscales` | flag | - | Disable lengthscale tracking |
-| `--advanced-plots` | flag | off | Generate advanced diagnostic plots (heatmaps, residuals) |
-
-## Usage Examples
-
-### Quick Testing
-
-Test both pipelines with minimal compute:
-
-```bash
-# Transformer - 3 datasets, 2 iterations, 100 epochs, log-space training
-python active_learning.py --y-transform log --testing
-
-# GP - 3 datasets, 2 iterations, 100 epochs
-python active_learning_gp.py --testing
+Options:
+  --testing / --no-testing        Run in testing mode (small data).
+  --n-iterations INTEGER          Number of active learning iterations.
+  --n-candidates INTEGER          Candidate pool size.
+  --n-select INTEGER              Number of points to select per iteration.
+  --mc-samples INTEGER            Number of MC dropout forward passes.
+  --epochs INTEGER                Training epochs per iteration (default:
+                                  2000).
+  --dropout FLOAT                 Dropout rate for MC dropout.
+  --n-datasets INTEGER            Number of ROOT datasets to load.
+  --n-samples INTEGER             Number of samples to use from data.
+  --val-fraction FLOAT            Fraction of data reserved for validation
+                                  (default: 0.2). Applied to initial data and
+                                  each batch of new points.
+  --output-dir TEXT               Output directory.
+  --generate-data / --no-generate-data
+                                  Generate new models using Run3ModelGen.
+  --min-gen-fraction FLOAT        Minimum fraction of n-select that must be
+                                  generated successfully before stopping
+                                  retries (default: 0.6).
+  --max-gen-attempts INTEGER      Maximum number of generation attempts per
+                                  iteration (default: 10).
+  --gen-workers INTEGER           Number of parallel genModels.py workers per
+                                  generation attempt (default: 1).
+  --head [classification|lsq_classification|regression]
+                                  Acquisition head (see pmssm.heads).
+                                  'regression' (default) is the production
+                                  path: MSE on the transformed target,
+                                  acquisition by predictive variance.
+                                  'classification' trains binary cross-entropy
+                                  on the verdict 1[t>0] and must be paired
+                                  with --selection-strategy bald or
+                                  cls_entropy, since its output is a logit and
+                                  the mean-based tolerance cut and proximity
+                                  weighting have no meaning in logit units.
+  --selection-strategy [top_k|top_k_tol_only|tol_only_random|entropy_batch|bald|cls_entropy]
+                                  Selection strategy: top_k, top_k_tol_only
+                                  (short-circuit, no proximity weighting), or
+                                  entropy_batch (default).
+  --entropy-blur FLOAT            Entropy smoothing parameter (entropy_batch
+                                  only).
+  --entropy-beta FLOAT            Gibbs sampling temperature (entropy_batch
+                                  only).
+  --entropy-pool-size INTEGER     Focused pool size for entropy_batch pre-
+                                  filtering.
+  --candidate-generation [uniform|lhs]
+                                  Candidate pool generation method: uniform
+                                  random or Latin Hypercube Sampling (default:
+                                  lhs).
+  --proximity-sampling FLOAT      Gaussian proximity weighting width around
+                                  target value (0 to disable, default: 0.1).
+  --tolerance-sampling FLOAT      Hard cut: keep only candidates within
+                                  ±tolerance of threshold in transformed space
+                                  (0 to disable, default: 1.0).
+  --target [CLs|CrossSection|DMRD|ExpR]
+                                  Observable the surrogate learns and the AL
+                                  loop targets (default: DMRD). See
+                                  active_learning_transformer.py for details.
+  --no-mcmc-eval                  Ignore --mcmc-data-dir and run without an
+                                  MCMC reference set, for targets that have no
+                                  posterior reference.
+  --target-value FLOAT            Target relic density value for proximity
+                                  weighting (default: 0.12).
+  --config-file TEXT              YAML config file (overrides CLI args).
+                                  Supports parameter sweeps.
+  --sweep-index INTEGER           Sweep combination index (requires --config-
+                                  file).
+  --early-stopping / --no-early-stopping
+                                  Enable early stopping on validation loss
+                                  (default: enabled).
+  --patience INTEGER              Early stopping patience (epochs without
+                                  improvement, default: 200).
+  --warm-starting / --no-warm-starting
+                                  Warm-start from previous iteration
+                                  checkpoint (default: enabled).
+  --eval-data-path TEXT           Path to external eval dataset (ROOT/CSV) for
+                                  validation.
+  --compute-full-metrics / --no-compute-full-metrics
+                                  Compute comprehensive evaluation metrics
+                                  (accuracy, MSE, RMSE).
+  --y-transform [zscore|log]      Y transformation: 'log' (default,
+                                  recommended) or 'zscore' (legacy).
+  --mcmc-data-dir TEXT            Directory containing MCMC ROOT files for
+                                  static evaluation (e.g.,
+                                  data/neutralino_v4).
+  --mcmc-max-samples INTEGER      Seeded uniform subsample cap on the MCMC set
+                                  (emcee chains are ~96% repeated rows; the
+                                  subsample preserves multiplicity weighting).
+                                  0 disables.
+  --static-eval-size INTEGER      Number of models to reserve from the random
+                                  pool as a static evaluation set (default:
+                                  100000).
+  --data-dir TEXT                 Directory containing training ROOT files
+                                  (default: data/18387358).
+  --use-mcmc-loader / --no-use-mcmc-loader
+                                  Load initial training data via
+                                  load_mcmc_data (MCMC-specific filters:
+                                  straddle-0.12, exclude <0.04). Default:
+                                  load_pmssm_data via --data-dir.
+  --train-baseline / --no-train-baseline
+                                  Also train a random-sampling baseline model
+                                  each iteration (default: enabled). Disable
+                                  for pure capacity tests.
+  --resume-from TEXT              Path to previous output dir to resume from
+                                  (loads state.pt).
+  --n-additional-iterations INTEGER
+                                  If --resume-from given, run this many more
+                                  iterations.
+  --gpu-ids TEXT                  Comma-separated GPU IDs for AL and baseline
+                                  models (default: 2,3).
+  --n-ensemble INTEGER            Train K independent members per iteration
+                                  and use their disagreement as the
+                                  acquisition uncertainty instead of MC
+                                  dropout (K=1, the default, keeps MC
+                                  dropout). Requires --no-train-baseline. The
+                                  across-member covariance has rank <= K-1, so
+                                  entropy_batch is degenerate for larger
+                                  batches; use top_k.
+  --acq-uncertainty [dropout|laplace]
+                                  How the acquisition uncertainty is computed.
+                                  'dropout' (default) takes the spread of
+                                  --mc-samples stochastic passes. 'laplace'
+                                  uses a last-layer linearised Laplace
+                                  posterior over the penultimate features,
+                                  which is EXACT here because the head is
+                                  linear and the loss is MSE. It grows with
+                                  distance from the labelled features rather
+                                  than with local weight sensitivity, needs
+                                  ONE forward pass instead of --mc-samples,
+                                  and yields a candidate covariance of rank up
+                                  to the feature dimension instead of --mc-
+                                  samples-1, which entropy_batch needs.
+                                  Incompatible with --n-ensemble > 1.
+  --laplace-prior-precision FLOAT
+                                  Gaussian prior precision on the last-layer
+                                  weights for --acq-uncertainty laplace.
+                                  Ranking is insensitive to it in this regime,
+                                  so the default is a numerical safeguard.
+  --pack-debris / --keep-debris   At the end of each iteration, summarise the
+                                  SModelS winners and the LSP composition into
+                                  the log plus a small JSON, keep the ntuples,
+                                  and pack iteration_NNN/{worker_*,retry_*}
+                                  into one debris.tar. On by default: each
+                                  iteration otherwise leaves ~6,200 files and
+                                  /ptmp has a hard filesystem inode ceiling
+                                  that does not grow. --keep-debris restores
+                                  the old behaviour of leaving every workspace
+                                  in place.
+  --seed INTEGER                  Master random seed propagated to torch /
+                                  numpy / candidate pool (default: 42).
+  --d-model INTEGER               DNN per-parameter embedding dim (default:
+                                  64).
+  --num-layers INTEGER            DNN hidden layer count (default: 4).
+  --dim-feedforward INTEGER       DNN hidden layer width (default: 256).
+  --help                          Show this message and exit.
 ```
 
-### Production Runs
+## `pipelines/active_learning_gp.py`
 
-Full active learning with data generation:
+```
+Usage: active_learning_gp.py [OPTIONS]
 
-```bash
-# Transformer - 40 iterations, 50k samples, 10k epochs, log-space training
-python active_learning.py \
-    --y-transform log \
-    --n-iterations 40 \
-    --n-samples 50000 \
-    --n-select 20000 \
-    --n-candidates 50000 \
-    --epochs 10000 \
-    --generate-data \
-    --gen-workers 20 \
-    --warm-starting \
-    --early-stopping
+  Active learning pipeline for pMSSM relic density prediction using GP models.
 
-# GP - 40 iterations, 100k samples, 2k epochs
-python active_learning_gp.py \
-    --model-type exact_gp \
-    --n-iterations 40 \
-    --n-samples 100000 \
-    --n-select 20000 \
-    --n-candidates 50000 \
-    --epochs 2000 \
-    --generate-data \
-    --gen-workers 20 \
-    --warm-starting \
-    --early-stopping
+  Trains ExactGP, DeepGP, SparseGP, or MLP; computes uncertainty via GP
+  posterior variance (or entropy-based batch selection); and selects most
+  informative points for data generation.
+
+Options:
+  --testing / --no-testing        Run in testing mode (small data).
+  --n-iterations INTEGER          Number of active learning iterations.
+  --n-candidates INTEGER          Candidate pool size.
+  --n-select INTEGER              Number of points to select per iteration.
+  --n-datasets INTEGER            Number of ROOT datasets to load.
+  --n-samples INTEGER             Number of samples to use from data.
+  --val-fraction FLOAT            Fraction of data reserved for validation
+                                  (default: 0.2). Applied to initial data and
+                                  each batch of new points.
+  --output-dir TEXT               Output directory.
+  --generate-data / --no-generate-data
+                                  Generate new models using Run3ModelGen.
+  --min-gen-fraction FLOAT        Minimum fraction of n-select that must be
+                                  generated successfully before stopping
+                                  retries (default: 0.6).
+  --max-gen-attempts INTEGER      Maximum number of generation attempts per
+                                  iteration (default: 10).
+  --gen-workers INTEGER           Number of parallel genModels.py workers per
+                                  generation attempt (default: 1).
+  --no-mcmc-eval                  Ignore --mcmc-data-dir and run without an
+                                  MCMC reference set, for targets that have no
+                                  posterior reference.
+  --target [CLs|CrossSection|DMRD|ExpR]
+                                  Target function to predict.
+  --model-type [exact_gp|deep_gp|sparse_gp|mlp|laplace_gpc]
+                                  Model type. 'laplace_gpc' is the binary
+                                  Laplace GP classifier of Rasmussen &
+                                  Williams section 3.4 and is a classifier
+                                  only: pair it with --head classification.
+  --kernel TEXT                   Kernel type (RBF, Matern, RQK,
+                                  SpectralMixture, RBF+Matern).
+  --lengthscale FLOAT             Initial kernel lengthscale.
+  --noise FLOAT                   Initial noise level.
+  --jitter FLOAT                  Cholesky jitter.
+  --learning-rate FLOAT           Optimizer learning rate.
+  --epochs INTEGER                Max training epochs per AL iteration
+                                  (default: 2000).
+  --early-stopping / --no-early-stopping
+                                  Enable early stopping on validation loss.
+  --patience INTEGER              Early stopping patience (epochs without
+                                  improvement, default: 200).
+  --use-ard / --no-ard            Use ARD (Automatic Relevance Determination).
+  --use-dkl / --no-dkl            Use Deep Kernel Learning (ExactGP only).
+  --feature-dim INTEGER           DKL feature dimension.
+  --num-hidden-dims INTEGER       DeepGP hidden layer dimensions.
+  --num-middle-dims INTEGER       DeepGP middle layer dimensions (0 = no
+                                  middle layer).
+  --num-inducing-max INTEGER      Max inducing points (DeepGP/SparseGP).
+  --inducing-strategy [kmeans|vanilla]
+                                  Inducing point initialization (sparse_gp
+                                  only).
+  --gp-num-samples INTEGER        Number of likelihood samples (DeepGP).
+  --batch-size INTEGER            Batch size (DeepGP/SparseGP).
+  --warm-starting / --no-warm-starting
+                                  Warm-start from previous iteration.
+  --m-nu FLOAT                    Matern nu parameter.
+  --num-mixtures INTEGER          Number of mixtures for SpectralMixture
+                                  kernel.
+  --head [classification|lsq_classification|regression]
+                                  Acquisition head. 'regression' is production
+                                  (MSE on t). 'classification' attaches a
+                                  Bernoulli likelihood and so is available for
+                                  the variational models (deep_gp, sparse_gp)
+                                  only; 'lsq_classification' regresses the +-1
+                                  verdict under the Gaussian likelihood, which
+                                  keeps the exact GP exact. Both verdict heads
+                                  pair with --selection-strategy bald or
+                                  cls_entropy.
+  --selection-strategy [top_k|top_k_tol_only|tol_only_random|entropy_batch|bald|cls_entropy]
+                                  Selection strategy: top_k or entropy_batch
+                                  (default).
+  --entropy-blur FLOAT            Entropy smoothing parameter (entropy_batch
+                                  only).
+  --entropy-beta FLOAT            Gibbs sampling temperature (entropy_batch
+                                  only).
+  --tolerance-sampling FLOAT      Hard cut: keep only candidates within
+                                  ±tolerance of threshold in transformed space
+                                  (0 to disable, default: 1.0).
+  --proximity-sampling FLOAT      Gaussian proximity weighting width around
+                                  target value (0 to disable, default: 0.1).
+  --entropy-pool-size INTEGER     Focused pool size for entropy_batch pre-
+                                  filtering.
+  --candidate-source [pool|mcmc]  Candidate source: 'pool' (random sampling,
+                                  default) or 'mcmc' (theoretical-limit /
+                                  oracle mode — restrict candidates to the
+                                  pre-loaded MCMC dataset; --generate-data is
+                                  forced off).
+  --compute-full-metrics / --no-compute-full-metrics
+                                  Compute comprehensive GoF metrics (accuracy,
+                                  chi2, pulls, etc.).
+  --eval-data-path TEXT           Path to true eval dataset (ROOT/CSV).
+  --mcmc-data-dir TEXT            Directory containing MCMC ROOT files for
+                                  static evaluation (e.g. data/neutralino_v4).
+  --mcmc-max-samples INTEGER      Seeded uniform subsample cap on the MCMC set
+                                  (emcee chains are ~96% repeated rows; the
+                                  subsample preserves multiplicity weighting).
+                                  0 disables.
+  --static-eval-size INTEGER      Number of models to reserve from the random
+                                  pool as a static evaluation set (default:
+                                  100000).
+  --track-lengthscales / --no-track-lengthscales
+                                  Save learned ARD lengthscales per iteration.
+  --advanced-plots / --no-advanced-plots
+                                  Generate advanced diagnostic plots
+                                  (heatmaps, residuals).
+  --config-file TEXT              YAML config file (overrides CLI args).
+                                  Supports parameter sweeps.
+  --sweep-index INTEGER           Sweep combination index (requires --config-
+                                  file).
+  --data-dir TEXT                 Directory containing training ROOT files
+                                  (default: data/18387358).
+  --resume-from TEXT              Path to previous output dir to resume from
+                                  (loads state.pt).
+  --n-additional-iterations INTEGER
+                                  If --resume-from given, run this many more
+                                  iterations.
+  --gpu-ids TEXT                  Comma-separated GPU IDs for AL and baseline
+                                  models (default: 0,1).
+  --pack-debris / --keep-debris   At the end of each iteration, summarise the
+                                  SModelS winners and the LSP composition into
+                                  the log plus a small JSON, keep the ntuples,
+                                  and pack iteration_NNN/{worker_*,retry_*}
+                                  into one debris.tar. On by default: each
+                                  iteration otherwise leaves ~6,200 files and
+                                  /ptmp has a hard filesystem inode ceiling
+                                  that does not grow. --keep-debris restores
+                                  the old behaviour of leaving every workspace
+                                  in place.
+  --seed INTEGER                  Master random seed propagated to torch /
+                                  numpy / candidate pool (default: 42).
+  --help                          Show this message and exit.
 ```
 
-### Advanced Selection Strategies
+## `pipelines/active_learning_tabpfn.py`
 
-**Transformer with entropy-based selection**:
-```bash
-python active_learning.py \
-    --y-transform log \
-    --selection-strategy entropy_batch \
-    --entropy-pool-size 5000 \
-    --candidate-generation lhs \
-    --n-iterations 10
+```
+Usage: active_learning_tabpfn.py [OPTIONS]
+
+  Active learning pipeline for pMSSM relic density prediction using TabPFN.
+
+  Uses TabPFN's native predictive variance for uncertainty and ensemble
+  diversity for entropy-based batch selection.
+
+Options:
+  --testing / --no-testing        Run in testing mode (small data).
+  --n-iterations INTEGER          Number of active learning iterations.
+  --n-candidates INTEGER          Candidate pool size.
+  --n-select INTEGER              Number of points to select per iteration.
+  --n-ensemble-samples INTEGER    Number of TabPFN ensemble runs for
+                                  uncertainty (default: 16).
+  --n-datasets INTEGER            Number of ROOT datasets to load.
+  --n-samples INTEGER             Number of samples to use from data.
+  --val-fraction FLOAT            Fraction of data reserved for validation
+                                  (default: 0.2). Applied to initial data and
+                                  each batch of new points.
+  --output-dir TEXT               Output directory.
+  --generate-data / --no-generate-data
+                                  Generate new models using Run3ModelGen.
+  --min-gen-fraction FLOAT        Minimum fraction of n-select that must be
+                                  generated successfully before stopping
+                                  retries (default: 0.6).
+  --max-gen-attempts INTEGER      Maximum number of generation attempts per
+                                  iteration (default: 10).
+  --gen-workers INTEGER           Number of parallel genModels.py workers per
+                                  generation attempt (default: 1).
+  --selection-strategy [top_k|top_k_tol_only|tol_only_random|entropy_batch]
+                                  Selection strategy: top_k (default),
+                                  top_k_tol_only (short-circuit, no
+                                  proximity), or entropy_batch (prohibitively
+                                  expensive for TabPFN).
+  --entropy-blur FLOAT            Entropy smoothing parameter (entropy_batch
+                                  only).
+  --entropy-beta FLOAT            Gibbs sampling temperature (entropy_batch
+                                  only).
+  --entropy-pool-size INTEGER     Focused pool size for entropy_batch pre-
+                                  filtering.
+  --candidate-generation [uniform|lhs]
+                                  Candidate pool generation method: uniform
+                                  random or Latin Hypercube Sampling (default:
+                                  lhs).
+  --proximity-sampling FLOAT      Gaussian proximity weighting width around
+                                  target value (0 to disable, default: 0.1).
+  --tolerance-sampling FLOAT      Hard cut: keep only candidates within
+                                  ±tolerance of threshold in transformed space
+                                  (0 to disable, default: 1.0).
+  --target [CLs|CrossSection|DMRD|ExpR]
+                                  Observable the surrogate learns and the AL
+                                  loop targets (default: DMRD). See
+                                  active_learning_transformer.py for details.
+  --no-mcmc-eval                  Ignore --mcmc-data-dir and run without an
+                                  MCMC reference set, for targets that have no
+                                  posterior reference.
+  --target-value FLOAT            Target relic density value for proximity
+                                  weighting (default: 0.12).
+  --config-file TEXT              YAML config file (overrides CLI args).
+                                  Supports parameter sweeps.
+  --sweep-index INTEGER           Sweep combination index (requires --config-
+                                  file).
+  --mcmc-data-dir TEXT            Directory containing MCMC ROOT files for
+                                  static evaluation (e.g.,
+                                  data/neutralino_v4).
+  --mcmc-max-samples INTEGER      Seeded uniform subsample cap on the MCMC set
+                                  (emcee chains are ~96% repeated rows; the
+                                  subsample preserves multiplicity weighting).
+                                  0 disables.
+  --static-eval-size INTEGER      Number of models to reserve from the random
+                                  pool as a static evaluation set (default:
+                                  100000).
+  --data-dir TEXT                 Directory containing training ROOT files
+                                  (default: data/18387358).
+  --resume-from TEXT              Path to previous output dir to resume from
+                                  (loads state.pt).
+  --n-additional-iterations INTEGER
+                                  If --resume-from given, run this many more
+                                  iterations.
+  --gpu-ids, --gpu-id TEXT        Comma-separated GPU IDs. One: sequential
+                                  AL+baseline on that GPU. Two: AL on the
+                                  first, baseline on the second, in parallel
+                                  (default: 0). --gpu-id is kept as an alias
+                                  for backward compatibility.
+  --pack-debris / --keep-debris   At the end of each iteration, summarise the
+                                  SModelS winners and the LSP composition into
+                                  the log plus a small JSON, keep the ntuples,
+                                  and pack iteration_NNN/{worker_*,retry_*}
+                                  into one debris.tar. On by default: each
+                                  iteration otherwise leaves ~6,200 files and
+                                  /ptmp has a hard filesystem inode ceiling
+                                  that does not grow. --keep-debris restores
+                                  the old behaviour of leaving every workspace
+                                  in place.
+  --seed INTEGER                  Master random seed propagated to torch /
+                                  numpy / candidate pool (default: 42).
+  --help                          Show this message and exit.
 ```
 
-**Transformer with proximity weighting** (focus near DMRD target):
-```bash
-python active_learning.py \
-    --y-transform log \
-    --selection-strategy proximity_weighted \
-    --proximity-sampling 0.1 \
-    --candidate-generation lhs \
-    --n-iterations 10
-```
+## Other command lines
 
-**GP with top-K selection** (simpler, faster):
-```bash
-python active_learning_gp.py \
-    --selection-strategy top_k \
-    --n-iterations 10
-```
+Every script under `scripts/` answers `--help` except the positional-argument
+ones noted in `scripts/README.md` (`best_analysis_arms.py`,
+`diversity_tests.py`, `extract_emcee_chain_h5.py`, `acquisition_efficacy.py`,
+`plot_transformer_architecture.py`). The ones a user is likely to call:
 
-**GP with entropy batch** (default, more diverse):
-```bash
-python active_learning_gp.py \
-    --selection-strategy entropy_batch \
-    --entropy-blur 0.15 \
-    --entropy-beta 50.0 \
-    --n-iterations 10
-```
-
-### Parameter Sweeps with YAML Config
-
-Create a sweep configuration:
-
-```bash
-# Create sweep_config.yaml
-cat > sweep_config.yaml <<EOF
-epochs: [1000, 2000, 5000]  # 3 values
-dropout: [0.1, 0.15, 0.2]   # 3 values (Transformer only)
-# Total: 3 × 3 = 9 combinations
-
-# Fixed parameters
-y_transform: log
-n_iterations: 5
-n_candidates: 10000
-n_select: 100
-warm_starting: true
-early_stopping: true
-patience: 200
-EOF
-
-# Run specific combination (e.g., combo 0: epochs=1000, dropout=0.1)
-python active_learning.py --config-file sweep_config.yaml --sweep-index 0
-
-# Or use SLURM array job for all combinations
-#SBATCH --array=0-8
-python active_learning.py \
-    --config-file sweep_config.yaml \
-    --sweep-index $SLURM_ARRAY_TASK_ID
-```
-
-GP sweep example:
-
-```bash
-# gp_sweep_config.yaml
-cat > gp_sweep_config.yaml <<EOF
-epochs: [1000, 2000, 5000]
-learning_rate: [0.001, 0.01]
-kernel: [RBF, Matern]
-# Total: 3 × 2 × 2 = 12 combinations
-
-n_iterations: 5
-model_type: exact_gp
-use_ard: true
-early_stopping: true
-EOF
-
-#SBATCH --array=0-11
-python active_learning_gp.py \
-    --config-file gp_sweep_config.yaml \
-    --sweep-index $SLURM_ARRAY_TASK_ID
-```
-
-### External Evaluation Dataset
-
-Evaluate on separate held-out dataset:
-
-```bash
-# Transformer
-python active_learning.py \
-    --y-transform log \
-    --eval-data-path /path/to/eval_data.root \
-    --compute-full-metrics \
-    --n-iterations 10
-
-# GP
-python active_learning_gp.py \
-    --eval-data-path /path/to/eval_data.root \
-    --compute-full-metrics \
-    --n-iterations 10
-```
-
-### Multi-Target GP Models
-
-Train GP models for different target observables:
-
-```bash
-# Dark matter relic density (default)
-python active_learning_gp.py --target DMRD --model-type exact_gp
-
-# Direct detection cross section
-python active_learning_gp.py --target CrossSection --model-type exact_gp
-
-# LHC exclusion limits
-python active_learning_gp.py --target CLs --model-type exact_gp
-```
-
-### Model Comparisons
-
-Compare different model architectures:
-
-```bash
-# GP models
-python active_learning_gp.py --model-type exact_gp --n-iterations 10
-python active_learning_gp.py --model-type deep_gp --n-iterations 10
-python active_learning_gp.py --model-type sparse_gp --inducing-strategy kmeans --n-iterations 10
-
-# MLP baseline (no uncertainty - uses random selection)
-python active_learning_gp.py --model-type mlp --n-iterations 10
-```
-
-### Custom Training Configuration
-
-**Disable early stopping** (train for full epoch budget):
-```bash
-python active_learning.py --y-transform log --no-early-stopping --epochs 5000
-```
-
-**Custom early stopping patience**:
-```bash
-python active_learning.py --y-transform log --early-stopping --patience 500 --epochs 10000
-```
-
-**Train from scratch each iteration** (no warm-starting):
-```bash
-python active_learning.py --y-transform log --no-warm-starting --n-iterations 10
-```
-
-**Custom learning rate**:
-```bash
-# Transformer
-python active_learning.py --y-transform log --learning-rate 1e-4 --epochs 5000
-
-# GP
-python active_learning_gp.py --learning-rate 1e-2 --epochs 3000
-```
-
-### Debugging and Analysis
-
-**Full training curves** (no early stopping):
-```bash
-python active_learning.py --y-transform log --no-early-stopping --epochs 2000
-```
-
-**Longer patience** for better convergence:
-```bash
-python active_learning.py --y-transform log --patience 500 --epochs 10000
-```
-
-**Advanced GP diagnostics**:
-```bash
-python active_learning_gp.py \
-    --advanced-plots \
-    --track-lengthscales \
-    --compute-full-metrics
-```
-
-**Comprehensive evaluation metrics**:
-```bash
-python active_learning.py --y-transform log --compute-full-metrics
-```
-Metrics include:
-- Accuracy (within 1σ, 2σ, 3σ)
-- Weighted accuracy (α = 1, 2, 5, 10)
-- MSE, RMSE, R²
-- Chi², reduced chi²
-- Pulls (mean, std)
-- All in both normalized and physical space
-
-## Shell Scripts
-
-Pre-configured shell scripts for common workflows:
-
-### Transformer Active Learning
-
-| Script | Purpose | Configuration |
-|--------|---------|---------------|
-| [run_active_learning.sh](../run_active_learning.sh) | Production run | 40 iterations, 50k samples, 10k epochs, log-space training, data generation |
-| [run_active_learning_1h.sh](../run_active_learning_1h.sh) | 1-hour test | 2 iterations, 50k samples, log-space training |
-| [run_active_learning_medium_test.sh](../run_active_learning_medium_test.sh) | Medium test | 3 datasets, 2000 samples, 3 iterations, 500 epochs, log-space training |
-| [run_active_learning_with_config.sh](../run_active_learning_with_config.sh) | Config file example | Demonstrates YAML config and parameter sweeps |
-| [run_active_learning_with_eval.sh](../run_active_learning_with_eval.sh) | External eval example | Shows external dataset evaluation |
-
-### GP Active Learning
-
-| Script | Purpose | Configuration |
-|--------|---------|---------------|
-| [run_active_learning_gp.sh](../run_active_learning_gp.sh) | Production run | DeepGP, 40 iterations, 100k samples, 2k epochs |
-| [run_active_learning_gp_1h.sh](../run_active_learning_gp_1h.sh) | 1-hour test | DeepGP, 3 iterations, 50k samples, log-space training |
-| [run_active_learning_gp_2h.sh](../run_active_learning_gp_2h.sh) | 2-hour test | ExactGP, shorter run for quick validation |
-| [run_active_learning_gp_medium_test.sh](../run_active_learning_gp_medium_test.sh) | Medium test | 3 datasets, 2000 samples, 3 iterations |
-
-## Config File Format
-
-YAML configuration files can override any CLI parameter:
-
-```yaml
-# Single values - override defaults
-y_transform: log
-n_iterations: 10
-epochs: 5000
-learning_rate: 1e-3
-early_stopping: true
-patience: 200
-warm_starting: true
-
-# List values - create parameter sweep (Cartesian product)
-dropout: [0.1, 0.15, 0.2]     # 3 values
-mc_samples: [20, 30, 50]       # 3 values
-# Total combinations: 3 × 3 = 9
-
-# Use --sweep-index to select combination:
-# 0 = dropout=0.1, mc_samples=20
-# 1 = dropout=0.1, mc_samples=30
-# ...
-# 8 = dropout=0.2, mc_samples=50
-```
-
-**Key features**:
-- Underscores in YAML keys (e.g., `n_iterations`, `early_stopping`)
-- Hyphens in CLI (e.g., `--n-iterations`, `--early-stopping`)
-- Automatic conversion between formats
-- List values create Cartesian product for sweeps
-- `--sweep-index` selects which combination to run
-- Perfect for SLURM array jobs
-
-## TabPFN-Specific Options
-
-Options only available in `active_learning_tabpfn.py`:
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--n-ensemble-samples` | int | 16 | Number of TabPFN ensemble forward passes for uncertainty |
-| `--selection-strategy` | str | top_k | Point selection: `top_k` (default), `entropy_batch` |
-| `--proximity-sampling` | float | 0.1 | Proximity weighting width (0 = disabled) |
-| `--tolerance-sampling` | float | 1.0 | Threshold filter width (entropy_batch only) |
-| `--gpu-id` | int | 0 | Single GPU device ID (TabPFN uses one GPU) |
-
-TabPFN is a pre-trained model -- `--warm-starting`, `--early-stopping`, and `--epochs` do not apply.
-Requires `TABPFN_TOKEN` environment variable (get key at https://ux.priorlabs.ai/account).
-
-## Cross-Run Analysis
-
-`analyse_runs.py` computes quality, physical property, and diversity metrics across completed runs.
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--run-dirs` | str+ | required | Run output directories (must contain state.pt) |
-| `--labels` | str+ | auto | Human-readable labels for each run |
-| `--mcmc-data-dir` | str | None | MCMC ROOT files for MMD and cluster coverage |
-| `--output-dir` | str | analysis_output | Where to write plots and summary.csv |
-| `--target` | str | DMRD | Target variable: `DMRD`, `CrossSection`, `CLs` |
-| `--n-bootstrap` | int | 500 | Bootstrap resamples (0 = skip) |
-| `--n-permutations` | int | 200 | Permutation resamples for MMD CI |
-| `--n-clusters` | int | 20 | K-means clusters for coverage metric |
-| `--knn-k` | int | 5 | Nearest neighbours for k-NN distance |
-| `--include-baseline` | flag | off | Also plot baseline model curves |
-| `--seed` | int | 0 | RNG seed for reproducibility |
-
-See [ANALYSIS_METRICS.md](ANALYSIS_METRICS.md) for detailed metric descriptions.
-
-## See Also
-
-- [active_learning_plan.md](active_learning_plan.md) - Transformer AL design and algorithms
-- [gp_pipeline_comparison.md](gp_pipeline_comparison.md) - GP pipeline features and comparison
-- [ANALYSIS_METRICS.md](ANALYSIS_METRICS.md) - Cross-run analysis metrics reference
-- [PACKAGE_STRUCTURE.md](PACKAGE_STRUCTURE.md) - Code organization and architecture
-- [README.md](../README.md) - Quick start guide
+| command | purpose |
+|---|---|
+| `python scripts/campaign/campaign_chase.py --cells <csv> --dry-run` | preview what the chase would resubmit |
+| `python scripts/campaign/update_sweep_manifest.py [--manifest ...] [--all]` | refresh manifest statuses |
+| `python scripts/campaign/prune_run_debris.py --runs <glob> [--apply]` | pack finished iterations |
+| `bash scripts/campaign/archive_runs.sh [SRC] [DEST] [GLOB]` | archive runs |
+| `python scripts/analysis/analyse_runs.py --run-dirs ... --output-dir ...` | cross-run metrics (`doc/ANALYSIS_METRICS.md`) |
+| `python scripts/figures/plot_hit_rate_trajectories_multiseed.py --manifest ... [--compute-accuracy]` | the central figure script |
+| `python -m pmssm.gifs <run dir>` | remake a run's animations |
+| `python tests/check_repo_layout.py [--help-all] [--paper DIR]` | the layout guard |

@@ -41,6 +41,8 @@ PATH_RE = re.compile(
     r"(?<![\w/.\-])(scripts|slurm|pipelines|pmssm|doc|tests)/[\w./\-]*\w\.(py|sh|md|png|toml|template|yaml|conf)\b")
 FORBIDDEN = ["pMSSM-trafo"]
 EXEMPT_PATHS = {"slurm/cluster.conf"}      # gitignored by design, created per cluster
+HISTORICAL = "doc/history/"                 # design records kept verbatim; not checked
+SELF = Path("tests/check_repo_layout.py")   # this file quotes the patterns it forbids
 SANCTIONED_INSERTS = {"sys.path.insert(0, str(_REPO_ROOT))",
                       "sys.path.insert(0, str(_GP_PIPELINE_ROOT))",
                       "sys.path.insert(0, str(_R3MG_SCRIPTS))"}
@@ -48,7 +50,7 @@ SANCTIONED_INSERTS = {"sys.path.insert(0, str(_REPO_ROOT))",
 
 def tracked_files():
     out = subprocess.run(["git", "ls-files"], cwd=_REPO_ROOT, capture_output=True, text=True, check=True)
-    return [Path(p) for p in out.stdout.split("\n") if p]
+    return [Path(p) for p in out.stdout.split("\n") if p and Path(p) != SELF]
 
 
 def check_compile(files, findings):
@@ -63,7 +65,7 @@ def check_compile(files, findings):
 def check_paths(files, findings, extra_files=()):
     for rel in list(files) + list(extra_files):
         p = Path(rel)
-        if p.suffix not in TEXT_SUFFIXES | {".tex"}:
+        if p.suffix not in TEXT_SUFFIXES | {".tex"} or str(p).startswith(HISTORICAL):
             continue
         full = p if p.is_absolute() else _REPO_ROOT / p
         try:
@@ -174,7 +176,7 @@ def check_imports_and_cycles(files, findings):
 
 def check_forbidden(files, findings):
     for rel in files:
-        if rel.suffix not in TEXT_SUFFIXES:
+        if rel.suffix not in TEXT_SUFFIXES or str(rel).startswith(HISTORICAL):
             continue
         text = (_REPO_ROOT / rel).read_text(errors="replace")
         for word in FORBIDDEN:
