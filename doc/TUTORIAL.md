@@ -31,7 +31,7 @@ git clone --recurse-submodules git@github.com:jwuerzinger/pmssm-al-benchmark.git
 cd pmssm-al-benchmark
 pixi install -e rocm                   # or -e cuda
 (cd Run3ModelGen && pixi run build)    # the physics chain; see its README
-bash scripts/tutorial/fetch_data.sh    # 12 MB into data/tutorial/
+bash scripts/tutorial/fetch_data.sh    # unpacks the 12 MB sample shipped in data/tutorial/
 ```
 
 Both submodules are required: `al_pmssmwithgp` holds the GP models and the
@@ -39,18 +39,19 @@ Both submodules are required: `al_pmssmwithgp` holds the GP models and the
 labels with and the source of every dataset (fetching it needs a CERN
 account). Steps 2 to 5 run in the oracle configuration and do not launch the
 simulator, so they work while the `Run3ModelGen` build is still running; step
-6 needs it. The sample holds two ROOT
-files with the same `susy` tree and branches as the real data
-(`data/tutorial/README.txt` records their provenance):
+6 needs it. The sample ships with the repository as
+`data/tutorial/pmssm-al-tutorial-data-v1.tar.gz` (checksum beside it); the
+fetch script unpacks it into two ROOT files with the same `susy` tree and
+branches as the real data (`data/tutorial/README.txt` records their
+provenance):
 
 | file | content |
 |---|---|
 | `data/tutorial/pool/ntuple.tutorial.0.root` | 50,000 models drawn uniformly from the relic-density pool: the 19 input parameters, Ω h², the Higgs mass and the LSP type the validity cuts need |
 | `data/tutorial/mcmc/ntuple.tutorial.0.root` | 100,000 rows drawn uniformly over the emcee reference posterior, walker repeats included |
 
-On the Viper cluster the tarball is also at
-`/viper/u2/jwuerzin/pmssm-archive/tutorial/`; point `TUTORIAL_DATA_URL` at it
-to skip the download.
+`TUTORIAL_DATA_URL` (a URL or a local path) points the fetch script at
+another copy of the tarball; `TUTORIAL_DATA` changes where it unpacks.
 
 ## 2. Run one loop
 

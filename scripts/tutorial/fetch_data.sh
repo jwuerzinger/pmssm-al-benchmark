@@ -1,16 +1,17 @@
 #!/bin/bash
-# Fetch the tutorial's data sample (about 12 MB) into data/tutorial.
+# Unpack the tutorial's data sample (12 MB, shipped with the repository as
+# data/tutorial/pmssm-al-tutorial-data-v1.tar.gz) into data/tutorial/{pool,mcmc}.
 #
 #   bash scripts/tutorial/fetch_data.sh
 #
 # Env: TUTORIAL_DATA_URL  where the tarball is (an https URL or a local path;
-#                         default: the GitHub release asset)
+#                         default: the copy in the repository)
 #      TUTORIAL_DATA      where to unpack (default: <repo>/data/tutorial)
 #      TUTORIAL_DATA_SHA256  expected checksum ("" skips the check)
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 DEST="${TUTORIAL_DATA:-${REPO_ROOT}/data/tutorial}"
-URL="${TUTORIAL_DATA_URL:-https://github.com/jwuerzinger/pmssm-al-benchmark/releases/download/tutorial-data-v1/pmssm-al-tutorial-data-v1.tar.gz}"
+URL="${TUTORIAL_DATA_URL:-${REPO_ROOT}/data/tutorial/pmssm-al-tutorial-data-v1.tar.gz}"
 SHA="${TUTORIAL_DATA_SHA256-f4a374a0bc8f837e1347cca0a0ccf5808cfb66224761c9f49a4dc182b8314b20}"
 
 if [[ -f "${DEST}/pool/ntuple.tutorial.0.root" && -f "${DEST}/mcmc/ntuple.tutorial.0.root" ]]; then

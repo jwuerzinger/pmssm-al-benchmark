@@ -24,12 +24,12 @@ chased to a fixed number of iterations across many 24 h jobs.
   variant), exact and deep Gaussian processes, and TabPFN used in context.
 - **Targets** (`--target`): the dark-matter relic density `DMRD`
   (Ω h² = 0.12) and the LHC exclusion ratio `ExpR` (SModelS best expected r
-  = 1). Both boundaries sit at zero in training space. `doc/TARGETS.md`.
+  = 1). Both boundaries sit at zero in training space. [doc/TARGETS.md](doc/TARGETS.md).
 - **Acquisition**: a tolerance cut and proximity weighting around the
   boundary, then `top_k`, `entropy_batch` (a diverse batch from the predictive
   covariance), `tol_only_random`, or the classification-head scores
   `cls_entropy` and `bald`; the surrogate's output can be a regression of
-  log(Y / Y₀) or a classifier of the verdict. `doc/ACQUISITION.md`.
+  log(Y / Y₀) or a classifier of the verdict. [doc/ACQUISITION.md](doc/ACQUISITION.md).
 - **Inputs**: the ntuples carry 19 pMSSM parameters, of which 10 are fixed at
   the values of the ATLAS Run 2 electroweak scan and 9 are free: the slepton
   masses `meL`, `meR`, the gaugino and higgsino masses `M_1`, `M_2`, `mu`, the
@@ -44,7 +44,7 @@ pmssm/       the library: data, models, heads, selection, uncertainty, training,
 scripts/     figures/ analysis/ campaign/ experiments/  (scripts/README.md lists each)
 slurm/       al/ campaign/ analysis/ smoke/ experiments/ batch scripts (slurm/README.md)
 tests/       package tests and the layout guard (tests/check_repo_layout.py)
-doc/         the guides listed at the end of this file; doc/history/ holds old design records
+doc/         the guides linked under Documentation below; doc/history/ holds old design records
 Run3ModelGen/, al_pmssmwithgp/   submodules: the physics chain, the GP model code
 ```
 
@@ -81,8 +81,9 @@ Then:
    and, for TabPFN, the licence token. The batch scripts and `pmssm/paths.py`
    read the same values, so this is the one place paths are set.
 3. **Data.** The random pools, the emcee reference posterior and the SModelS
-   database are not part of the repository; `doc/DATA.md` says what they are,
-   where the code expects them and how they were made.
+   database are not part of the repository (the tutorial's small sample is);
+   [doc/DATA.md](doc/DATA.md) says what they are, where the code expects them
+   and how they were made.
 
 ## Quick start
 
@@ -95,7 +96,7 @@ pixi run -e rocm al-transformer -- --testing --n-iterations 3 --no-generate-data
 
 `--testing` loads a small slice of the pool. The pixi tasks `al-transformer`,
 `al-dnn`, `al-gp` and `al-tabpfn` wrap the four pipelines; `--help` on any of
-them lists every option (`doc/CLI_REFERENCE.md` reproduces the output).
+them lists every option ([doc/CLI_REFERENCE.md](doc/CLI_REFERENCE.md) reproduces the output).
 
 One production run on the cluster, with labelling:
 
@@ -108,7 +109,7 @@ sbatch --partition="${CLUSTER_PARTITION}" --gres="${CLUSTER_GPU_GRES_2}" \
 The per-model scripts in `slurm/al/` carry the paper's production settings
 (2,000 initial models, 500 selections per iteration from a million
 candidates, 40 iterations) and read overrides from `AL_*` environment
-variables. A run writes one directory (`doc/RUN_OUTPUT_LAYOUT.md`) and resumes
+variables. A run writes one directory ([doc/RUN_OUTPUT_LAYOUT.md](doc/RUN_OUTPUT_LAYOUT.md)) and resumes
 from its `state.pt`:
 
 ```bash
@@ -121,8 +122,8 @@ development partition, including the physics chain.
 
 ## Tutorial
 
-`doc/TUTORIAL.md` walks through one complete loop without the physics chain:
-a 12 MB data sample, two runs in the oracle configuration (candidates drawn
+[doc/TUTORIAL.md](doc/TUTORIAL.md) walks through one complete loop without the physics chain:
+a 12 MB data sample shipped with the repository, two runs in the oracle configuration (candidates drawn
 from the reference and labelled by lookup), the run directory, a manifest and
 the comparison figure that the paper's figures are built from.
 `pixi run -e rocm tutorial` executes the same steps end to end, about twenty
@@ -142,8 +143,8 @@ bash scripts/campaign/archive_runs.sh                      # tarball of every ru
 
 The sweep launcher writes one manifest row per run; the chase job wakes every
 six hours and resumes whatever is short of 200 iterations; the regeneration
-job re-renders every figure every three days. `doc/CAMPAIGN.md` explains each
-piece and the traps that shaped it; `doc/STORAGE.md` explains why the loop
+job re-renders every figure every three days. [doc/CAMPAIGN.md](doc/CAMPAIGN.md) explains each
+piece and the traps that shaped it; [doc/STORAGE.md](doc/STORAGE.md) explains why the loop
 packs each iteration's simulator workspaces and how finished runs are archived.
 
 ## Reproducing the paper
@@ -152,7 +153,7 @@ packs each iteration's simulator workspaces and how finished runs are archived.
 refreshes the manifests, renders every figure family in the documented order
 and copies the renders into the manuscript's figure directories. Run it once
 with `COPY_TO_PAPER=0` to render without touching the paper.
-`doc/REPRODUCING_THE_PAPER.md` maps each figure and table to the script that
+[doc/REPRODUCING_THE_PAPER.md](doc/REPRODUCING_THE_PAPER.md) maps each figure and table to the script that
 makes it, lists the inputs, and records the stale-cache traps that have
 produced silently wrong numbers before.
 
@@ -160,27 +161,28 @@ produced silently wrong numbers before.
 
 | guide | contents |
 |---|---|
-| `doc/TUTORIAL.md` | a complete loop on a small sample, no cluster needed; also runnable as `pixi run tutorial` |
-| `doc/ACQUISITION.md` | candidate generation, the tolerance cut and proximity weighting, the selection strategies, the acquisition heads |
-| `doc/TARGETS.md` | the target registry (`DMRD`, `ExpR`), the SModelS prerequisite, the two definitions of the in-band support |
-| `doc/CLI_REFERENCE.md` | the complete option list of the four pipelines, YAML sweeps, resuming |
-| `doc/RUN_OUTPUT_LAYOUT.md` | what a run directory contains and which file means what |
-| `doc/SLURM.md` | the cluster contract, the per-model scripts and their variables, bundled multi-seed jobs, resuming |
-| `doc/CAMPAIGN.md` | sweep manifests, the 200-iteration campaign, the chase loop, the regeneration job |
-| `doc/REPRODUCING_THE_PAPER.md` | figure and table to script map, regeneration order, known traps |
-| `doc/DATA.md` | the pools, the MCMC reference, the static evaluation set, caches |
-| `doc/STORAGE.md` | the purge, the inode limit, in-loop packing, archiving |
-| `doc/PACKAGE_STRUCTURE.md` | the `pmssm` package module by module |
-| `doc/IMPLEMENTATION_DETAILS.md` | log-space uncertainty, warm starting, proximity weighting, pipeline differences, GP jitter |
-| `doc/ANALYSIS_METRICS.md` | the cross-run metrics of `scripts/analysis/analyse_runs.py` |
-| `doc/LOGGING_INFO.md` | where the logs are and what they contain |
-| `scripts/README.md`, `slurm/README.md` | one line per script |
+| [doc/TUTORIAL.md](doc/TUTORIAL.md) | a complete loop on a small sample, no cluster needed; also runnable as `pixi run tutorial` |
+| [doc/ACQUISITION.md](doc/ACQUISITION.md) | candidate generation, the tolerance cut and proximity weighting, the selection strategies, the acquisition heads |
+| [doc/TARGETS.md](doc/TARGETS.md) | the target registry (`DMRD`, `ExpR`), the SModelS prerequisite, the two definitions of the in-band support |
+| [doc/CLI_REFERENCE.md](doc/CLI_REFERENCE.md) | the complete option list of the four pipelines, YAML sweeps, resuming |
+| [doc/RUN_OUTPUT_LAYOUT.md](doc/RUN_OUTPUT_LAYOUT.md) | what a run directory contains and which file means what |
+| [doc/SLURM.md](doc/SLURM.md) | the cluster contract, the per-model scripts and their variables, bundled multi-seed jobs, resuming |
+| [doc/CAMPAIGN.md](doc/CAMPAIGN.md) | sweep manifests, the 200-iteration campaign, the chase loop, the regeneration job |
+| [doc/REPRODUCING_THE_PAPER.md](doc/REPRODUCING_THE_PAPER.md) | figure and table to script map, regeneration order, known traps |
+| [doc/DATA.md](doc/DATA.md) | the pools, the MCMC reference, the static evaluation set, caches |
+| [doc/STORAGE.md](doc/STORAGE.md) | the purge, the inode limit, in-loop packing, archiving |
+| [doc/PACKAGE_STRUCTURE.md](doc/PACKAGE_STRUCTURE.md) | the `pmssm` package module by module |
+| [doc/IMPLEMENTATION_DETAILS.md](doc/IMPLEMENTATION_DETAILS.md) | log-space uncertainty, warm starting, proximity weighting, pipeline differences, GP jitter |
+| [doc/ANALYSIS_METRICS.md](doc/ANALYSIS_METRICS.md) | the cross-run metrics of `scripts/analysis/analyse_runs.py` |
+| [doc/LOGGING_INFO.md](doc/LOGGING_INFO.md) | where the logs are and what they contain |
+| [scripts/README.md](scripts/README.md), [slurm/README.md](slurm/README.md) | one line per script |
 
 ## Not in this repository, and other caveats
 
 - The data (pools, reference posterior, static evaluation sets, SModelS
   database) and the campaign's run directories live on the cluster's `/ptmp`
-  and are not deposited with the code.
+  and are not deposited with the code; only the tutorial's 12 MB sample
+  (`data/tutorial/`) ships with it.
 - `Run3ModelGen` is required and hosted on CERN's GitLab; readers without a
   CERN account cannot fetch it.
 - The scripts under `scripts/experiments/` and `slurm/experiments/` back
@@ -192,4 +194,4 @@ produced silently wrong numbers before.
 
 ## Citation and licence
 
-Please cite the paper when using this code. MIT License, see `LICENSE`.
+Please cite the paper when using this code. MIT License, see [LICENSE](LICENSE).

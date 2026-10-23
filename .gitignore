@@ -15,7 +15,11 @@ slurm/cluster.conf
 .claude/
 
 # Data, logs and results never belong in the repository
-/data/
+/data/*
+!/data/tutorial/
+/data/tutorial/*
+!/data/tutorial/pmssm-al-tutorial-data-v1.tar.gz
+!/data/tutorial/pmssm-al-tutorial-data-v1.tar.gz.sha256
 /logs/
 /plots/
 /analysis/

@@ -84,7 +84,7 @@ traps.
 | script | does |
 |---|---|
 | `run_tutorial.sh` | the tutorial end to end: fetches the sample, runs two oracle-mode loops, builds their manifest, renders the figures (`pixi run tutorial`) |
-| `fetch_data.sh` | downloads and verifies the 12 MB data sample into `data/tutorial` |
+| `fetch_data.sh` | verifies and unpacks the 12 MB data sample shipped in `data/tutorial/` (or downloads another copy) |
 | `make_tutorial_sample.py` | writes that sample from the full pools (run once, on the cluster) |
 
 ## experiments/ — one-off studies behind supplementary sections
