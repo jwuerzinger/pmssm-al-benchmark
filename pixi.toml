@@ -1,10 +1,17 @@
 [workspace]
 channels = ["https://prefix.dev/conda-forge"]
-name = "pytorch-conda-forge"
+name = "pmssm-al-benchmark"
 platforms = ["linux-64"]
 version = "0.1.0"
 
 [tasks]
+# Run with the GPU environment of your cluster: `pixi run -e rocm al-gp -- --help`
+al-transformer = "python pipelines/active_learning_transformer.py"
+al-dnn = "python pipelines/active_learning_dnn.py"
+al-gp = "python pipelines/active_learning_gp.py"
+al-tabpfn = "python pipelines/active_learning_tabpfn.py"
+test = "python tests/test_target_registry.py && python tests/test_model_names.py && python tests/test_models.py"
+check = "python tests/check_repo_layout.py"
 
 # ---------- Shared (vendor-neutral) dependencies ----------
 [dependencies]

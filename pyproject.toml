@@ -1,0 +1,10 @@
+# Package metadata only. The environment is managed by pixi (see pixi.toml);
+# nothing here is installed, and the code is run from the repository root.
+[project]
+name = "pmssm-al-benchmark"
+version = "1.0.0"
+description = "Active-learning benchmark for valid-model search in the electroweak pMSSM: surrogate models, acquisition rules, the SLURM campaign machinery and the paper's figure scripts."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Jonas Würzinger" }]
+requires-python = ">=3.11"
