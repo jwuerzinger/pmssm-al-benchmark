@@ -15,11 +15,11 @@ slurm/cluster.conf
 .claude/
 
 # Data, logs and results never belong in the repository
-data/
-logs/
-plots/
-analysis/
-review/
+/data/
+/logs/
+/plots/
+/analysis/
+/review/
 active_learning_*output*/
 *_output_*/
 pipeline_analysis*/
